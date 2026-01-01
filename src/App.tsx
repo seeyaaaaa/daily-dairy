@@ -15,6 +15,10 @@ import { BillsPage } from "@/pages/consumer/BillsPage";
 import { AccountPage } from "@/pages/consumer/AccountPage";
 import { DeliveryStatusPage } from "@/pages/consumer/DeliveryStatusPage";
 import { OwnerDashboard } from "@/pages/owner/OwnerDashboard";
+import { OwnerDeliveriesPage } from "@/pages/owner/OwnerDeliveriesPage";
+import { OwnerCustomersPage } from "@/pages/owner/OwnerCustomersPage";
+import { OwnerBillsPage } from "@/pages/owner/OwnerBillsPage";
+import { OwnerStatsPage } from "@/pages/owner/OwnerStatsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -53,9 +57,10 @@ const AppRoutes = () => {
       
       {/* Owner Routes */}
       <Route path="/owner" element={<ProtectedRoute role="owner"><OwnerDashboard /></ProtectedRoute>} />
-      <Route path="/owner/deliveries" element={<ProtectedRoute role="owner"><OwnerDashboard /></ProtectedRoute>} />
-      <Route path="/owner/customers" element={<ProtectedRoute role="owner"><OwnerDashboard /></ProtectedRoute>} />
-      <Route path="/owner/stats" element={<ProtectedRoute role="owner"><OwnerDashboard /></ProtectedRoute>} />
+      <Route path="/owner/deliveries" element={<ProtectedRoute role="owner"><OwnerDeliveriesPage /></ProtectedRoute>} />
+      <Route path="/owner/customers" element={<ProtectedRoute role="owner"><OwnerCustomersPage /></ProtectedRoute>} />
+      <Route path="/owner/bills" element={<ProtectedRoute role="owner"><OwnerBillsPage /></ProtectedRoute>} />
+      <Route path="/owner/stats" element={<ProtectedRoute role="owner"><OwnerStatsPage /></ProtectedRoute>} />
       
       <Route path="*" element={<NotFound />} />
     </Routes>

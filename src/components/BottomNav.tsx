@@ -16,6 +16,7 @@ const ownerNavItems = [
   { icon: Home, label: 'Today', path: '/owner' },
   { icon: Truck, label: 'Deliveries', path: '/owner/deliveries' },
   { icon: Users, label: 'Customers', path: '/owner/customers' },
+  { icon: Receipt, label: 'Bills', path: '/owner/bills' },
   { icon: BarChart3, label: 'Stats', path: '/owner/stats' },
 ];
 
