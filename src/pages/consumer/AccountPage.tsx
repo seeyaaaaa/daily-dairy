@@ -1,16 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
 import { MobileLayout } from '@/components/MobileLayout';
 import { BottomNav } from '@/components/BottomNav';
+import { NotificationSettings } from '@/components/NotificationSettings';
 import { useApp } from '@/contexts/AppContext';
-import { User, MapPin, Bell, LogOut, ChevronRight, Plus, Phone, Clock } from 'lucide-react';
+import { User, MapPin, LogOut, ChevronRight, Plus, Phone, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const AccountPage: React.FC = () => {
+  const [notificationPrefs, setNotificationPrefs] = useState({
+    deliveryUpdates: true,
+    billReminders: true,
+    subscriptionChanges: true,
+    promotions: false,
+  });
   const navigate = useNavigate();
   const { user, addresses, setUser, setIsOnboarded } = useApp();
 
@@ -108,34 +114,10 @@ export const AccountPage: React.FC = () => {
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
             Notifications
           </h2>
-          <Card>
-            <CardContent className="p-0 divide-y divide-border">
-              <div className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
-                    <Bell className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground">Daily Delivery Reminder</p>
-                    <p className="text-sm text-muted-foreground">Get notified when milk is delivered</p>
-                  </div>
-                </div>
-                <Switch defaultChecked />
-              </div>
-              <div className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
-                    <span className="text-lg">📊</span>
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground">Monthly Bill Summary</p>
-                    <p className="text-sm text-muted-foreground">Receive bill at month end</p>
-                  </div>
-                </div>
-                <Switch defaultChecked />
-              </div>
-            </CardContent>
-          </Card>
+          <NotificationSettings 
+            preferences={notificationPrefs}
+            onPreferencesChange={setNotificationPrefs}
+          />
         </motion.section>
 
         {/* Logout */}
