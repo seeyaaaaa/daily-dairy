@@ -5,24 +5,22 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MobileLayout } from '@/components/MobileLayout';
 import { BottomNav } from '@/components/BottomNav';
+import { Logo } from '@/components/Logo';
 import { useApp } from '@/contexts/AppContext';
-import { Calendar, Edit3, TrendingUp, ChevronRight, Plus, Pause, Droplets } from 'lucide-react';
+import { Calendar, Edit3, TrendingUp, ChevronRight, Plus, Pause, Truck, ClipboardList, Bell, Sparkles } from 'lucide-react';
 
 export const ConsumerDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { user, subscriptions, milkProducts, addresses, dailyOverrides } = useApp();
+  const { user, subscriptions, milkProducts, dailyOverrides } = useApp();
 
   const today = new Date();
-  const dayOfWeek = today.getDay();
   const todayStr = today.toISOString().split('T')[0];
   
-  // Get active subscription
   const activeSubscription = subscriptions[0];
   const activeMilk = activeSubscription 
     ? milkProducts.find(m => m.id === activeSubscription.milkProductId)
     : null;
 
-  // Check for today's override
   const todayOverride = activeSubscription 
     ? dailyOverrides.find(o => o.subscriptionId === activeSubscription.id && o.date === todayStr)
     : null;
@@ -33,7 +31,6 @@ export const ConsumerDashboard: React.FC = () => {
 
   const todayTotal = todayQuantity * (activeMilk?.pricePerLiter ?? 0);
 
-  // Mock monthly stats
   const monthlyLiters = 28.5;
   const monthlyBill = 1710;
 
@@ -47,22 +44,31 @@ export const ConsumerDashboard: React.FC = () => {
   return (
     <MobileLayout>
       {/* Header */}
-      <div className="px-5 pt-6 pb-4 gradient-soft">
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between"
-        >
-          <div>
-            <p className="text-sm text-muted-foreground">{getGreeting()}</p>
-            <h1 className="text-2xl font-bold text-foreground">
-              {user?.name || 'Welcome'} 👋
-            </h1>
-          </div>
-          <div className="w-12 h-12 rounded-full gradient-fresh flex items-center justify-center shadow-glow">
-            <Droplets className="w-6 h-6 text-primary-foreground" />
-          </div>
-        </motion.div>
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 gradient-soft" />
+        <div className="absolute top-0 right-0 w-40 h-40 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        
+        <div className="relative px-5 pt-6 pb-5">
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center justify-between"
+          >
+            <div>
+              <p className="text-sm text-muted-foreground font-medium">{getGreeting()}</p>
+              <h1 className="text-2xl font-bold text-foreground mt-0.5">
+                {user?.name || 'Welcome'} 👋
+              </h1>
+            </div>
+            <div className="flex items-center gap-3">
+              <button className="relative w-10 h-10 rounded-full bg-card shadow-soft flex items-center justify-center border border-border/50">
+                <Bell className="w-5 h-5 text-muted-foreground" />
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary" />
+              </button>
+              <Logo size="sm" showText={false} />
+            </div>
+          </motion.div>
+        </div>
       </div>
 
       <div className="px-5 py-4 space-y-5">
@@ -72,58 +78,59 @@ export const ConsumerDashboard: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <Card variant="elevated" className="overflow-hidden">
-            <div className="gradient-fresh p-4 flex items-center justify-between">
+          <Card variant="elevated" className="overflow-hidden border-0">
+            <div className="gradient-hero p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Calendar className="w-5 h-5 text-primary-foreground" />
-                <span className="font-semibold text-primary-foreground">Today's Order</span>
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                  <Calendar className="w-5 h-5 text-primary-foreground" />
+                </div>
+                <div>
+                  <span className="font-semibold text-primary-foreground">Today's Delivery</span>
+                  <p className="text-xs text-primary-foreground/70">
+                    {today.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}
+                  </p>
+                </div>
               </div>
-              <span className="text-sm text-primary-foreground/80">
-                {today.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
-              </span>
+              {!todayOverride?.isPaused && activeSubscription && (
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-primary-foreground">{todayQuantity}L</p>
+                  <p className="text-xs text-primary-foreground/70">₹{todayTotal}</p>
+                </div>
+              )}
             </div>
             
             <CardContent className="p-5">
               {activeSubscription ? (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-4 rounded-2xl bg-accent/50">
                     <div className="flex items-center gap-3">
-                      <span className="text-3xl">{activeMilk?.icon}</span>
+                      <span className="text-4xl">{activeMilk?.icon}</span>
                       <div>
                         <p className="font-semibold text-foreground">{activeMilk?.name}</p>
                         <p className="text-sm text-muted-foreground">
-                          ₹{activeMilk?.pricePerLiter}/L
+                          ₹{activeMilk?.pricePerLiter} per liter
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      {todayOverride?.isPaused ? (
-                        <span className="inline-flex items-center gap-1 text-destructive font-medium">
-                          <Pause className="w-4 h-4" /> Paused
-                        </span>
-                      ) : (
-                        <>
-                          <p className="text-2xl font-bold text-foreground">{todayQuantity} L</p>
-                          <p className="text-sm text-muted-foreground">₹{todayTotal}</p>
-                        </>
-                      )}
-                    </div>
+                    {todayOverride?.isPaused && (
+                      <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-destructive/10 text-destructive text-sm font-medium">
+                        <Pause className="w-3 h-3" /> Paused
+                      </span>
+                    )}
                   </div>
 
-                  <div className="flex gap-2 pt-2">
+                  <div className="flex gap-3">
                     <Button 
                       variant="soft" 
-                      size="sm" 
-                      className="flex-1"
+                      className="flex-1 h-12"
                       onClick={() => navigate('/consumer/today-override')}
                     >
-                      <Edit3 className="w-4 h-4 mr-1" />
+                      <Edit3 className="w-4 h-4 mr-2" />
                       Change Today
                     </Button>
                     <Button 
                       variant="outline" 
-                      size="sm" 
-                      className="flex-1"
+                      className="flex-1 h-12"
                       onClick={() => navigate('/consumer/subscription')}
                     >
                       Manage Plan
@@ -131,14 +138,18 @@ export const ConsumerDashboard: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-4">
-                  <p className="text-muted-foreground mb-4">You haven't started a milk plan yet</p>
+                <div className="text-center py-6">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-accent flex items-center justify-center">
+                    <Sparkles className="w-8 h-8 text-primary" />
+                  </div>
+                  <h3 className="font-semibold text-foreground mb-2">Start Your Milk Plan</h3>
+                  <p className="text-muted-foreground text-sm mb-4">Get fresh milk delivered to your doorstep daily</p>
                   <Button 
-                    variant="fresh" 
+                    variant="hero" 
                     onClick={() => navigate('/consumer/subscription')}
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    Start Your Milk Plan
+                    Create Subscription
                   </Button>
                 </div>
               )}
@@ -152,24 +163,26 @@ export const ConsumerDashboard: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <Card variant="interactive" onClick={() => navigate('/consumer/bills')}>
+          <Card variant="interactive" onClick={() => navigate('/consumer/bills')} className="group">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-primary" />
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <TrendingUp className="w-4 h-4 text-primary" />
+                  </div>
                   This Month
                 </CardTitle>
-                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
               </div>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-3xl font-bold text-foreground">{monthlyLiters} L</p>
+                  <p className="text-3xl font-bold text-foreground">{monthlyLiters}L</p>
                   <p className="text-sm text-muted-foreground">Total delivered</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-3xl font-bold text-primary">₹{monthlyBill}</p>
+                  <p className="text-3xl font-bold text-gradient">₹{monthlyBill}</p>
                   <p className="text-sm text-muted-foreground">Approx. bill</p>
                 </div>
               </div>
@@ -182,30 +195,32 @@ export const ConsumerDashboard: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="grid grid-cols-2 gap-3"
+          className="grid grid-cols-2 gap-4"
         >
           <Card 
             variant="interactive" 
-            className="p-4"
+            className="p-5 group"
             onClick={() => navigate('/consumer/delivery-status')}
           >
             <div className="text-center">
-              <div className="w-12 h-12 mx-auto mb-2 rounded-xl bg-accent flex items-center justify-center">
-                <span className="text-2xl">🚚</span>
+              <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-emerald-500/10 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Truck className="w-7 h-7 text-emerald-600" />
               </div>
-              <p className="text-sm font-medium text-foreground">Track Delivery</p>
+              <p className="font-semibold text-foreground">Track Delivery</p>
+              <p className="text-xs text-muted-foreground mt-1">See live status</p>
             </div>
           </Card>
           <Card 
             variant="interactive" 
-            className="p-4"
+            className="p-5 group"
             onClick={() => navigate('/consumer/orders')}
           >
             <div className="text-center">
-              <div className="w-12 h-12 mx-auto mb-2 rounded-xl bg-accent flex items-center justify-center">
-                <span className="text-2xl">📋</span>
+              <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-blue-500/10 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <ClipboardList className="w-7 h-7 text-blue-600" />
               </div>
-              <p className="text-sm font-medium text-foreground">Order History</p>
+              <p className="font-semibold text-foreground">Order History</p>
+              <p className="text-xs text-muted-foreground mt-1">Past deliveries</p>
             </div>
           </Card>
         </motion.div>
