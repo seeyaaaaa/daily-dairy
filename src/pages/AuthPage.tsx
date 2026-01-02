@@ -4,8 +4,9 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Logo } from '@/components/Logo';
 import { useApp } from '@/contexts/AppContext';
-import { User, Store, Phone, ArrowRight, Loader2 } from 'lucide-react';
+import { User, Store, Phone, ArrowRight, Loader2, Shield, ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 type Step = 'role' | 'phone' | 'otp';
@@ -30,7 +31,6 @@ export const AuthPage: React.FC = () => {
       return;
     }
     setIsLoading(true);
-    // Simulate OTP sending
     await new Promise(resolve => setTimeout(resolve, 1000));
     setIsLoading(false);
     toast.success('OTP sent to +91 ' + phone);
@@ -43,10 +43,8 @@ export const AuthPage: React.FC = () => {
       return;
     }
     setIsLoading(true);
-    // Simulate verification
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Mock successful login
     setUser({
       id: 'user-' + Date.now(),
       phone: '+91' + phone,
@@ -55,7 +53,7 @@ export const AuthPage: React.FC = () => {
     });
     
     setIsLoading(false);
-    toast.success('Welcome!');
+    toast.success('Welcome to MilkMate!');
     
     if (selectedRole === 'consumer') {
       navigate('/setup-profile');
@@ -67,62 +65,70 @@ export const AuthPage: React.FC = () => {
 
   return (
     <div className={`min-h-screen flex flex-col bg-background max-w-md mx-auto ${selectedRole === 'owner' ? 'owner-theme' : ''}`}>
+      {/* Decorative background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-gradient-to-b from-primary/10 to-transparent rounded-full blur-3xl opacity-50" />
+      </div>
+
       {/* Header */}
-      <div className="p-6 pt-12">
+      <div className="relative p-6 pt-10">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
+          className="flex flex-col items-center"
         >
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl gradient-fresh flex items-center justify-center shadow-glow">
-            <span className="text-3xl">🥛</span>
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">DailyDairy</h1>
-          <p className="text-muted-foreground mt-1">Your milk delivery companion</p>
+          <Logo size="lg" isOwner={selectedRole === 'owner'} />
         </motion.div>
       </div>
 
       {/* Content */}
-      <div className="flex-1 px-6">
+      <div className="flex-1 px-6 pt-8 relative z-10">
         {step === 'role' && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="space-y-4"
+            className="space-y-5"
           >
-            <h2 className="text-xl font-semibold text-center mb-6">I am a...</h2>
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-foreground">Welcome!</h2>
+              <p className="text-muted-foreground mt-2">How would you like to use MilkMate?</p>
+            </div>
             
             <Card 
               variant="interactive"
-              className="p-0"
+              className="p-0 overflow-hidden group"
               onClick={() => handleRoleSelect('consumer')}
             >
-              <CardContent className="p-5 flex items-center gap-4">
-                <div className="w-14 h-14 rounded-xl bg-accent flex items-center justify-center">
-                  <User className="w-7 h-7 text-primary" />
+              <CardContent className="p-0">
+                <div className="flex items-center gap-4 p-5">
+                  <div className="w-16 h-16 rounded-2xl gradient-brand flex items-center justify-center shadow-primary group-hover:scale-105 transition-transform">
+                    <User className="w-8 h-8 text-primary-foreground" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg text-foreground">I'm a Customer</h3>
+                    <p className="text-sm text-muted-foreground">Order fresh milk daily</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-foreground">Customer</h3>
-                  <p className="text-sm text-muted-foreground">I want to order milk</p>
-                </div>
-                <ArrowRight className="w-5 h-5 text-muted-foreground" />
               </CardContent>
             </Card>
 
             <Card 
               variant="interactive"
-              className="p-0"
+              className="p-0 overflow-hidden group"
               onClick={() => handleRoleSelect('owner')}
             >
-              <CardContent className="p-5 flex items-center gap-4">
-                <div className="w-14 h-14 rounded-xl bg-owner-accent flex items-center justify-center">
-                  <Store className="w-7 h-7 text-owner-primary" />
+              <CardContent className="p-0">
+                <div className="flex items-center gap-4 p-5">
+                  <div className="w-16 h-16 rounded-2xl bg-[hsl(var(--owner-primary))] flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+                    <Store className="w-8 h-8 text-primary-foreground" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg text-foreground">I'm a Milk Shop</h3>
+                    <p className="text-sm text-muted-foreground">Manage deliveries & customers</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-[hsl(var(--owner-primary))] group-hover:translate-x-1 transition-all" />
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-foreground">Milk Shop Owner</h3>
-                  <p className="text-sm text-muted-foreground">I deliver milk</p>
-                </div>
-                <ArrowRight className="w-5 h-5 text-muted-foreground" />
               </CardContent>
             </Card>
           </motion.div>
@@ -134,42 +140,53 @@ export const AuthPage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-6"
           >
+            <button 
+              onClick={() => setStep('role')}
+              className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors mb-4"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span className="text-sm">Back</span>
+            </button>
+
             <div className="text-center">
-              <h2 className="text-xl font-semibold mb-2">Enter your phone number</h2>
-              <p className="text-muted-foreground text-sm">We'll send you an OTP to verify</p>
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-accent flex items-center justify-center">
+                <Phone className="w-8 h-8 text-primary" />
+              </div>
+              <h2 className="text-2xl font-bold text-foreground mb-2">Enter your phone</h2>
+              <p className="text-muted-foreground">We'll send you a verification code</p>
             </div>
 
             <div className="relative">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2 text-muted-foreground">
-                <Phone className="w-5 h-5" />
-                <span className="font-medium">+91</span>
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2 text-foreground font-medium">
+                <span className="text-xl">🇮🇳</span>
+                <span>+91</span>
               </div>
               <Input
                 type="tel"
                 placeholder="98765 43210"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                className="pl-24 h-14 text-lg"
+                className="pl-24 h-14 text-lg font-medium tracking-wide"
                 maxLength={10}
               />
             </div>
 
             <Button 
-              variant="fresh" 
+              variant="hero" 
               size="lg" 
               className="w-full" 
               onClick={handlePhoneSubmit}
               disabled={isLoading || phone.length < 10}
             >
-              {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Get OTP'}
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <>
+                  <span>Get OTP</span>
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </>
+              )}
             </Button>
-
-            <button 
-              onClick={() => setStep('role')}
-              className="w-full text-center text-muted-foreground text-sm hover:text-foreground transition-colors"
-            >
-              ← Back to role selection
-            </button>
           </motion.div>
         )}
 
@@ -179,52 +196,63 @@ export const AuthPage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-6"
           >
+            <button 
+              onClick={() => setStep('phone')}
+              className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors mb-4"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span className="text-sm">Back</span>
+            </button>
+
             <div className="text-center">
-              <h2 className="text-xl font-semibold mb-2">Enter OTP</h2>
-              <p className="text-muted-foreground text-sm">Sent to +91 {phone}</p>
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-accent flex items-center justify-center">
+                <Shield className="w-8 h-8 text-primary" />
+              </div>
+              <h2 className="text-2xl font-bold text-foreground mb-2">Verify OTP</h2>
+              <p className="text-muted-foreground">Sent to +91 {phone}</p>
             </div>
 
             <Input
               type="text"
-              placeholder="Enter 6-digit OTP"
+              placeholder="• • • • • •"
               value={otp}
               onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              className="h-14 text-lg text-center tracking-[0.5em]"
+              className="h-16 text-2xl text-center tracking-[0.75em] font-bold"
               maxLength={6}
             />
 
             <Button 
-              variant="fresh" 
+              variant="hero" 
               size="lg" 
               className="w-full" 
               onClick={handleOtpSubmit}
               disabled={isLoading || otp.length < 4}
             >
-              {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Verify & Continue'}
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <>
+                  <span>Verify & Continue</span>
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </>
+              )}
             </Button>
 
-            <div className="text-center space-y-2">
-              <button className="text-primary text-sm font-medium hover:underline">
+            <div className="text-center space-y-3">
+              <button className="text-primary text-sm font-semibold hover:underline">
                 Resend OTP
               </button>
               <p className="text-muted-foreground text-xs">
                 Didn't receive? Wait 30 seconds
               </p>
             </div>
-
-            <button 
-              onClick={() => setStep('phone')}
-              className="w-full text-center text-muted-foreground text-sm hover:text-foreground transition-colors"
-            >
-              ← Change phone number
-            </button>
           </motion.div>
         )}
       </div>
 
       {/* Footer */}
-      <div className="p-6 text-center text-xs text-muted-foreground">
-        By continuing, you agree to our Terms & Privacy Policy
+      <div className="relative z-10 p-6 text-center text-xs text-muted-foreground">
+        By continuing, you agree to our <span className="text-primary">Terms</span> & <span className="text-primary">Privacy Policy</span>
       </div>
     </div>
   );

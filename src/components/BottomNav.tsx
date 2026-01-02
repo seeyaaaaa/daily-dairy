@@ -31,11 +31,11 @@ export const BottomNav: React.FC = () => {
   return (
     <nav className={cn(
       "fixed bottom-0 left-0 right-0 z-50",
-      "bg-card/95 backdrop-blur-lg border-t border-border/50",
+      "bg-card/95 backdrop-blur-xl border-t border-border/30",
       "max-w-md mx-auto",
       isOwner && "owner-theme"
     )}>
-      <div className="flex items-center justify-around py-2 px-4 safe-area-inset-bottom">
+      <div className="flex items-center justify-around py-2 px-2 safe-area-inset-bottom">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
           const Icon = item.icon;
@@ -45,28 +45,26 @@ export const BottomNav: React.FC = () => {
               key={item.path}
               onClick={() => navigate(item.path)}
               className={cn(
-                "flex flex-col items-center gap-1 py-2 px-4 rounded-xl transition-all duration-200",
-                "min-w-[64px]",
+                "relative flex flex-col items-center gap-0.5 py-2 px-3 rounded-2xl transition-all duration-300",
+                "min-w-[60px]",
                 isActive 
                   ? "text-primary" 
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <div className="relative">
-                <Icon className={cn(
-                  "w-6 h-6 transition-transform duration-200",
-                  isActive && "scale-110"
-                )} />
-                {isActive && (
-                  <motion.div
-                    layoutId="navIndicator"
-                    className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-primary"
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  />
-                )}
-              </div>
+              {isActive && (
+                <motion.div
+                  layoutId="navBg"
+                  className="absolute inset-0 bg-primary/10 rounded-2xl"
+                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                />
+              )}
+              <Icon className={cn(
+                "relative w-5 h-5 transition-all duration-200",
+                isActive && "scale-110"
+              )} />
               <span className={cn(
-                "text-xs font-medium",
+                "relative text-[10px] font-medium transition-all",
                 isActive && "font-semibold"
               )}>
                 {item.label}
