@@ -6,13 +6,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useApp, Address } from '@/contexts/AppContext';
-import { ArrowRight, MapPin, Clock } from 'lucide-react';
+import { ArrowRight, MapPin, Clock, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 const deliverySlots = [
-  { id: '5-6', label: '5:00 - 6:00 AM', icon: '🌅' },
-  { id: '6-7', label: '6:00 - 7:00 AM', icon: '☀️' },
-  { id: '7-8', label: '7:00 - 8:00 AM', icon: '🌞' },
+  { id: '5-6', label: '5:00 - 6:00 AM', shortLabel: '5-6 AM', icon: '🌅', description: 'Early bird delivery' },
+  { id: '6-7', label: '6:00 - 7:00 AM', shortLabel: '6-7 AM', icon: '☀️', description: 'Morning fresh' },
+  { id: '7-8', label: '7:00 - 8:00 AM', shortLabel: '7-8 AM', icon: '🌞', description: 'Breakfast time' },
+  { id: '8-9', label: '8:00 - 9:00 AM', shortLabel: '8-9 AM', icon: '🏠', description: 'Late morning' },
+  { id: 'custom', label: 'Custom Time', shortLabel: 'Custom', icon: '⏰', description: 'Choose your time' },
 ];
 
 export const SetupProfilePage: React.FC = () => {
@@ -25,6 +27,7 @@ export const SetupProfilePage: React.FC = () => {
   const [pincode, setPincode] = useState('');
   const [city, setCity] = useState('');
   const [selectedSlot, setSelectedSlot] = useState('6-7');
+  const [customTime, setCustomTime] = useState('06:30');
   
   const navigate = useNavigate();
   const { user, setUser, addAddress, setIsOnboarded } = useApp();
@@ -53,6 +56,7 @@ export const SetupProfilePage: React.FC = () => {
       pincode,
       city,
       deliverySlot: selectedSlot,
+      customSlotTime: selectedSlot === 'custom' ? customTime : undefined,
       isDefault: true,
     };
 
@@ -193,27 +197,65 @@ export const SetupProfilePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Delivery Slot */}
+            {/* Delivery Slot - Enhanced */}
             <div className="pt-4">
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-4">
                 <Clock className="w-5 h-5 text-primary" />
-                <Label>Preferred Delivery Time</Label>
+                <Label className="text-base font-semibold">Preferred Delivery Time</Label>
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              
+              <div className="space-y-2">
                 {deliverySlots.map((slot) => (
                   <Card
                     key={slot.id}
-                    variant={selectedSlot === slot.id ? 'highlight' : 'interactive'}
-                    className="p-0 cursor-pointer"
+                    className={`cursor-pointer transition-all duration-200 overflow-hidden ${
+                      selectedSlot === slot.id 
+                        ? 'ring-2 ring-primary bg-primary/5 border-primary shadow-md' 
+                        : 'hover:border-primary/50 hover:shadow-sm'
+                    }`}
                     onClick={() => setSelectedSlot(slot.id)}
                   >
-                    <CardContent className="p-3 text-center">
-                      <span className="text-2xl block mb-1">{slot.icon}</span>
-                      <span className="text-xs font-medium">{slot.label.split(' - ')[0]}</span>
+                    <CardContent className="p-4 flex items-center gap-4">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
+                        selectedSlot === slot.id ? 'bg-primary/10' : 'bg-secondary'
+                      }`}>
+                        {slot.icon}
+                      </div>
+                      <div className="flex-1">
+                        <p className={`font-semibold ${selectedSlot === slot.id ? 'text-primary' : 'text-foreground'}`}>
+                          {slot.label}
+                        </p>
+                        <p className="text-sm text-muted-foreground">{slot.description}</p>
+                      </div>
+                      {selectedSlot === slot.id && (
+                        <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                          <Check className="w-4 h-4 text-primary-foreground" />
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
               </div>
+
+              {/* Custom time picker */}
+              {selectedSlot === 'custom' && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="mt-4"
+                >
+                  <Label htmlFor="customTime" className="text-sm text-muted-foreground">Select exact time:</Label>
+                  <Input
+                    id="customTime"
+                    type="time"
+                    value={customTime}
+                    onChange={(e) => setCustomTime(e.target.value)}
+                    className="h-12 mt-2 text-lg"
+                    min="04:00"
+                    max="10:00"
+                  />
+                </motion.div>
+              )}
             </div>
 
             <Button 

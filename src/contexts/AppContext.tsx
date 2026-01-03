@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 export type UserRole = 'consumer' | 'owner' | null;
 export type Language = 'en' | 'hi' | 'mr';
+export type PaymentMethod = 'offline' | 'online' | 'upi';
 
 export interface User {
   id: string;
@@ -19,11 +20,20 @@ export interface Address {
   pincode: string;
   city: string;
   deliverySlot: string;
+  customSlotTime?: string;
   isDefault: boolean;
+}
+
+export interface MilkBrand {
+  id: string;
+  name: string;
+  logo: string;
+  description: string;
 }
 
 export interface MilkProduct {
   id: string;
+  brandId: string;
   name: string;
   pricePerLiter: number;
   description: string;
@@ -40,6 +50,7 @@ export interface Subscription {
   startDate: string;
   endDate?: string;
   isActive: boolean;
+  paymentMethod: PaymentMethod;
 }
 
 export interface DailyOverride {
@@ -79,6 +90,7 @@ interface AppContextType {
   addresses: Address[];
   setAddresses: (addresses: Address[]) => void;
   addAddress: (address: Address) => void;
+  milkBrands: MilkBrand[];
   milkProducts: MilkProduct[];
   subscriptions: Subscription[];
   setSubscriptions: (subs: Subscription[]) => void;
@@ -95,19 +107,44 @@ interface AppContextType {
   setIsOnboarded: (value: boolean) => void;
 }
 
+const defaultMilkBrands: MilkBrand[] = [
+  { id: 'b1', name: 'Country Delight', logo: '🥛', description: 'Farm fresh milk delivered daily' },
+  { id: 'b2', name: 'Amul', logo: '🐄', description: 'The taste of India' },
+  { id: 'b3', name: 'Chitale', logo: '🏆', description: 'Premium quality dairy' },
+  { id: 'b4', name: 'Pride of Cows', logo: '✨', description: 'Single origin farm milk' },
+  { id: 'b5', name: 'Gokul', logo: '🌿', description: 'Fresh & natural' },
+  { id: 'b6', name: 'Local Dairy', logo: '🏠', description: 'Local farm fresh milk' },
+];
+
 const defaultMilkProducts: MilkProduct[] = [
-  { id: '1', name: 'Cow Milk', pricePerLiter: 60, description: 'Fresh A2 cow milk, rich in nutrients', icon: '🐄' },
-  { id: '2', name: 'Buffalo Milk', pricePerLiter: 70, description: 'Creamy buffalo milk, high fat content', icon: '🐃' },
-  { id: '3', name: 'Toned Milk', pricePerLiter: 55, description: 'Low fat milk for health conscious', icon: '🥛' },
-  { id: '4', name: 'Full Cream', pricePerLiter: 65, description: 'Rich full cream milk', icon: '✨' },
+  // Country Delight
+  { id: '1', brandId: 'b1', name: 'Cow Milk', pricePerLiter: 68, description: 'Farm fresh cow milk', icon: '🐄' },
+  { id: '2', brandId: 'b1', name: 'Buffalo Milk', pricePerLiter: 78, description: 'Creamy buffalo milk', icon: '🐃' },
+  { id: '3', brandId: 'b1', name: 'A2 Milk', pricePerLiter: 90, description: 'Pure A2 desi cow milk', icon: '🥛' },
+  // Amul
+  { id: '4', brandId: 'b2', name: 'Taaza', pricePerLiter: 54, description: 'Toned milk', icon: '🥛' },
+  { id: '5', brandId: 'b2', name: 'Gold', pricePerLiter: 66, description: 'Full cream milk', icon: '✨' },
+  { id: '6', brandId: 'b2', name: 'Shakti', pricePerLiter: 52, description: 'Standardised milk', icon: '💪' },
+  // Chitale
+  { id: '7', brandId: 'b3', name: 'Full Cream', pricePerLiter: 72, description: 'Premium full cream', icon: '🥛' },
+  { id: '8', brandId: 'b3', name: 'Toned Milk', pricePerLiter: 60, description: 'Light toned milk', icon: '🥛' },
+  // Pride of Cows
+  { id: '9', brandId: 'b4', name: 'Farm Milk', pricePerLiter: 95, description: 'Single origin premium', icon: '✨' },
+  // Gokul
+  { id: '10', brandId: 'b5', name: 'Cow Milk', pricePerLiter: 58, description: 'Fresh cow milk', icon: '🐄' },
+  { id: '11', brandId: 'b5', name: 'Buffalo Milk', pricePerLiter: 68, description: 'Fresh buffalo milk', icon: '🐃' },
+  // Local Dairy
+  { id: '12', brandId: 'b6', name: 'Cow Milk', pricePerLiter: 60, description: 'Fresh A2 cow milk', icon: '🐄' },
+  { id: '13', brandId: 'b6', name: 'Buffalo Milk', pricePerLiter: 70, description: 'Creamy buffalo milk', icon: '🐃' },
+  { id: '14', brandId: 'b6', name: 'Toned Milk', pricePerLiter: 55, description: 'Low fat milk', icon: '🥛' },
 ];
 
 const defaultCustomers: Customer[] = [
-  { id: 'c1', userId: 'u1', name: 'Riya Sharma', phone: '+91 98765 43210', addressId: 'a1', subscription: { id: 's1', customerId: 'c1', addressId: 'a1', milkProductId: '1', quantityPerDelivery: 1, daysOfWeek: [0,1,2,3,4,5,6], startDate: '2024-01-01', isActive: true } },
-  { id: 'c2', userId: 'u2', name: 'Aditya Patel', phone: '+91 98765 43211', addressId: 'a2', subscription: { id: 's2', customerId: 'c2', addressId: 'a2', milkProductId: '2', quantityPerDelivery: 1.5, daysOfWeek: [1,2,3,4,5,6], startDate: '2024-01-01', isActive: true } },
-  { id: 'c3', userId: 'u3', name: 'Priya Singh', phone: '+91 98765 43212', addressId: 'a3', subscription: { id: 's3', customerId: 'c3', addressId: 'a3', milkProductId: '1', quantityPerDelivery: 2, daysOfWeek: [0,1,2,3,4,5,6], startDate: '2024-01-01', isActive: true } },
-  { id: 'c4', userId: 'u4', name: 'Rahul Kumar', phone: '+91 98765 43213', addressId: 'a4', subscription: { id: 's4', customerId: 'c4', addressId: 'a4', milkProductId: '3', quantityPerDelivery: 0.5, daysOfWeek: [0,1,2,3,4,5,6], startDate: '2024-01-01', isActive: true } },
-  { id: 'c5', userId: 'u5', name: 'Sneha Gupta', phone: '+91 98765 43214', addressId: 'a5', subscription: { id: 's5', customerId: 'c5', addressId: 'a5', milkProductId: '2', quantityPerDelivery: 1, daysOfWeek: [1,2,3,4,5], startDate: '2024-01-01', isActive: true } },
+  { id: 'c1', userId: 'u1', name: 'Riya Sharma', phone: '+91 98765 43210', addressId: 'a1', subscription: { id: 's1', customerId: 'c1', addressId: 'a1', milkProductId: '1', quantityPerDelivery: 1, daysOfWeek: [0,1,2,3,4,5,6], startDate: '2024-01-01', isActive: true, paymentMethod: 'offline' } },
+  { id: 'c2', userId: 'u2', name: 'Aditya Patel', phone: '+91 98765 43211', addressId: 'a2', subscription: { id: 's2', customerId: 'c2', addressId: 'a2', milkProductId: '5', quantityPerDelivery: 1.5, daysOfWeek: [1,2,3,4,5,6], startDate: '2024-01-01', isActive: true, paymentMethod: 'online' } },
+  { id: 'c3', userId: 'u3', name: 'Priya Singh', phone: '+91 98765 43212', addressId: 'a3', subscription: { id: 's3', customerId: 'c3', addressId: 'a3', milkProductId: '9', quantityPerDelivery: 2, daysOfWeek: [0,1,2,3,4,5,6], startDate: '2024-01-01', isActive: true, paymentMethod: 'upi' } },
+  { id: 'c4', userId: 'u4', name: 'Rahul Kumar', phone: '+91 98765 43213', addressId: 'a4', subscription: { id: 's4', customerId: 'c4', addressId: 'a4', milkProductId: '4', quantityPerDelivery: 0.5, daysOfWeek: [0,1,2,3,4,5,6], startDate: '2024-01-01', isActive: true, paymentMethod: 'offline' } },
+  { id: 'c5', userId: 'u5', name: 'Sneha Gupta', phone: '+91 98765 43214', addressId: 'a5', subscription: { id: 's5', customerId: 'c5', addressId: 'a5', milkProductId: '7', quantityPerDelivery: 1, daysOfWeek: [1,2,3,4,5], startDate: '2024-01-01', isActive: true, paymentMethod: 'online' } },
 ];
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -155,6 +192,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       user, setUser,
       language, setLanguage,
       addresses, setAddresses, addAddress,
+      milkBrands: defaultMilkBrands,
       milkProducts: defaultMilkProducts,
       subscriptions, setSubscriptions, addSubscription, updateSubscription,
       dailyOverrides, addDailyOverride,
