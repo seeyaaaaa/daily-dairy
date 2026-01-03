@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -7,11 +7,15 @@ import { MobileLayout } from '@/components/MobileLayout';
 import { BottomNav } from '@/components/BottomNav';
 import { Logo } from '@/components/Logo';
 import { useApp } from '@/contexts/AppContext';
-import { Calendar, Edit3, TrendingUp, ChevronRight, Plus, Pause, Truck, ClipboardList, Bell, Sparkles } from 'lucide-react';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { Calendar, Edit3, TrendingUp, ChevronRight, Plus, Pause, Truck, ClipboardList, Bell, Sparkles, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export const ConsumerDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, subscriptions, milkProducts, dailyOverrides } = useApp();
+  const { supported, permission, requestPermission } = usePushNotifications();
+  const [notificationLoading, setNotificationLoading] = useState(false);
 
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
@@ -31,14 +35,38 @@ export const ConsumerDashboard: React.FC = () => {
 
   const todayTotal = todayQuantity * (activeMilk?.pricePerLiter ?? 0);
 
-  const monthlyLiters = 28.5;
-  const monthlyBill = 1710;
+  // Only show stats if user has subscription
+  const hasSubscription = !!activeSubscription;
+  const monthlyLiters = hasSubscription ? 28.5 : 0;
+  const monthlyBill = hasSubscription ? 1710 : 0;
 
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good Morning';
     if (hour < 17) return 'Good Afternoon';
     return 'Good Evening';
+  };
+
+  const handleNotificationClick = async () => {
+    if (!supported) {
+      toast.error('Push notifications are not supported on this device');
+      return;
+    }
+    
+    if (permission === 'granted') {
+      toast.success('Notifications are already enabled!');
+      return;
+    }
+    
+    setNotificationLoading(true);
+    const granted = await requestPermission();
+    setNotificationLoading(false);
+    
+    if (granted) {
+      toast.success('Notifications enabled! You\'ll receive delivery updates.');
+    } else {
+      toast.error('Please enable notifications in your browser settings');
+    }
   };
 
   return (
@@ -61,9 +89,20 @@ export const ConsumerDashboard: React.FC = () => {
               </h1>
             </div>
             <div className="flex items-center gap-3">
-              <button className="relative w-10 h-10 rounded-full bg-card shadow-soft flex items-center justify-center border border-border/50">
-                <Bell className="w-5 h-5 text-muted-foreground" />
-                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary" />
+              <button 
+                onClick={handleNotificationClick}
+                disabled={notificationLoading}
+                className={`relative w-10 h-10 rounded-full bg-card shadow-soft flex items-center justify-center border border-border/50 transition-all hover:scale-105 ${
+                  notificationLoading ? 'opacity-50' : ''
+                }`}
+              >
+                <Bell className={`w-5 h-5 ${permission === 'granted' ? 'text-primary' : 'text-muted-foreground'}`} />
+                {permission !== 'granted' && (
+                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive animate-pulse" />
+                )}
+                {permission === 'granted' && (
+                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary" />
+                )}
               </button>
               <Logo size="sm" showText={false} />
             </div>
@@ -157,73 +196,106 @@ export const ConsumerDashboard: React.FC = () => {
           </Card>
         </motion.div>
 
-        {/* This Month Stats */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <Card variant="interactive" onClick={() => navigate('/consumer/bills')} className="group">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <TrendingUp className="w-4 h-4 text-primary" />
+        {/* This Month Stats - Only show if has subscription */}
+        {hasSubscription && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Card variant="interactive" onClick={() => navigate('/consumer/bills')} className="group">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <TrendingUp className="w-4 h-4 text-primary" />
+                    </div>
+                    This Month
+                  </CardTitle>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-3xl font-bold text-foreground">{monthlyLiters}L</p>
+                    <p className="text-sm text-muted-foreground">Total delivered</p>
                   </div>
-                  This Month
-                </CardTitle>
-                <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-3xl font-bold text-foreground">{monthlyLiters}L</p>
-                  <p className="text-sm text-muted-foreground">Total delivered</p>
+                  <div className="text-right">
+                    <p className="text-3xl font-bold text-gradient">₹{monthlyBill}</p>
+                    <p className="text-sm text-muted-foreground">Approx. bill</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-3xl font-bold text-gradient">₹{monthlyBill}</p>
-                  <p className="text-sm text-muted-foreground">Approx. bill</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
-        {/* Quick Actions */}
+        {/* Quick Actions - Show Track Delivery for all, Order History only for subscribers */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="grid grid-cols-2 gap-4"
+          className={`grid ${hasSubscription ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}
         >
-          <Card 
-            variant="interactive" 
-            className="p-5 group"
-            onClick={() => navigate('/consumer/delivery-status')}
-          >
-            <div className="text-center">
-              <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-emerald-500/10 flex items-center justify-center group-hover:scale-105 transition-transform">
-                <Truck className="w-7 h-7 text-emerald-600" />
+          {hasSubscription && (
+            <Card 
+              variant="interactive" 
+              className="p-5 group"
+              onClick={() => navigate('/consumer/delivery-status')}
+            >
+              <div className="text-center">
+                <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-emerald-500/10 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <Truck className="w-7 h-7 text-emerald-600" />
+                </div>
+                <p className="font-semibold text-foreground">Track Delivery</p>
+                <p className="text-xs text-muted-foreground mt-1">See live status</p>
               </div>
-              <p className="font-semibold text-foreground">Track Delivery</p>
-              <p className="text-xs text-muted-foreground mt-1">See live status</p>
-            </div>
-          </Card>
-          <Card 
-            variant="interactive" 
-            className="p-5 group"
-            onClick={() => navigate('/consumer/orders')}
-          >
-            <div className="text-center">
-              <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-blue-500/10 flex items-center justify-center group-hover:scale-105 transition-transform">
-                <ClipboardList className="w-7 h-7 text-blue-600" />
+            </Card>
+          )}
+          {hasSubscription && (
+            <Card 
+              variant="interactive" 
+              className="p-5 group"
+              onClick={() => navigate('/consumer/orders')}
+            >
+              <div className="text-center">
+                <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-blue-500/10 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <ClipboardList className="w-7 h-7 text-blue-600" />
+                </div>
+                <p className="font-semibold text-foreground">Order History</p>
+                <p className="text-xs text-muted-foreground mt-1">Past deliveries</p>
               </div>
-              <p className="font-semibold text-foreground">Order History</p>
-              <p className="text-xs text-muted-foreground mt-1">Past deliveries</p>
-            </div>
-          </Card>
+            </Card>
+          )}
         </motion.div>
+
+        {/* Getting Started for new users */}
+        {!hasSubscription && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card variant="fresh" className="p-5">
+              <h3 className="font-semibold text-foreground mb-3">Getting Started</h3>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">1</div>
+                  <p className="text-sm text-muted-foreground">Create your first subscription</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">2</div>
+                  <p className="text-sm text-muted-foreground">Choose milk type & quantity</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">3</div>
+                  <p className="text-sm text-muted-foreground">Start receiving fresh milk daily!</p>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        )}
       </div>
 
       <BottomNav />

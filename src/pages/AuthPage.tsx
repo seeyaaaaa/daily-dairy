@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/Logo';
 import { useApp } from '@/contexts/AppContext';
+import { supabase } from '@/integrations/supabase/client';
 import { User, Store, Phone, ArrowRight, Loader2, Shield, ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -17,8 +18,17 @@ export const AuthPage: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
   const navigate = useNavigate();
   const { setUser, setIsOnboarded } = useApp();
+
+  // Resend timer countdown
+  useEffect(() => {
+    if (resendTimer > 0) {
+      const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendTimer]);
 
   const handleRoleSelect = (role: 'consumer' | 'owner') => {
     setSelectedRole(role);
@@ -30,37 +40,100 @@ export const AuthPage: React.FC = () => {
       toast.error('Please enter a valid phone number');
       return;
     }
+    
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: '+91' + phone,
+      });
+      
+      if (error) {
+        console.error('OTP Error:', error);
+        toast.error(error.message || 'Failed to send OTP');
+        setIsLoading(false);
+        return;
+      }
+      
+      toast.success('OTP sent to +91 ' + phone);
+      setResendTimer(30);
+      setStep('otp');
+    } catch (err) {
+      console.error('Error:', err);
+      toast.error('Failed to send OTP. Please try again.');
+    }
+    
     setIsLoading(false);
-    toast.success('OTP sent to +91 ' + phone);
-    setStep('otp');
+  };
+
+  const handleResendOtp = async () => {
+    if (resendTimer > 0) return;
+    
+    setIsLoading(true);
+    
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: '+91' + phone,
+      });
+      
+      if (error) {
+        toast.error(error.message || 'Failed to resend OTP');
+      } else {
+        toast.success('OTP resent successfully');
+        setResendTimer(30);
+      }
+    } catch (err) {
+      toast.error('Failed to resend OTP');
+    }
+    
+    setIsLoading(false);
   };
 
   const handleOtpSubmit = async () => {
-    if (otp.length < 4) {
-      toast.error('Please enter a valid OTP');
+    if (otp.length < 6) {
+      toast.error('Please enter a valid 6-digit OTP');
       return;
     }
-    setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
     
-    setUser({
-      id: 'user-' + Date.now(),
-      phone: '+91' + phone,
-      name: selectedRole === 'owner' ? 'Sharma Dairy' : '',
-      role: selectedRole,
-    });
+    setIsLoading(true);
+    
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        phone: '+91' + phone,
+        token: otp,
+        type: 'sms',
+      });
+      
+      if (error) {
+        console.error('Verify Error:', error);
+        toast.error(error.message || 'Invalid OTP');
+        setIsLoading(false);
+        return;
+      }
+      
+      if (data.user) {
+        setUser({
+          id: data.user.id,
+          phone: '+91' + phone,
+          name: selectedRole === 'owner' ? 'Sharma Dairy' : '',
+          role: selectedRole,
+        });
+        
+        toast.success('Welcome to MilkMate!');
+        
+        if (selectedRole === 'consumer') {
+          navigate('/setup-profile');
+        } else {
+          setIsOnboarded(true);
+          navigate('/owner');
+        }
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      toast.error('Verification failed. Please try again.');
+    }
     
     setIsLoading(false);
-    toast.success('Welcome to MilkMate!');
-    
-    if (selectedRole === 'consumer') {
-      navigate('/setup-profile');
-    } else {
-      setIsOnboarded(true);
-      navigate('/owner');
-    }
   };
 
   return (
@@ -226,7 +299,7 @@ export const AuthPage: React.FC = () => {
               size="lg" 
               className="w-full" 
               onClick={handleOtpSubmit}
-              disabled={isLoading || otp.length < 4}
+              disabled={isLoading || otp.length < 6}
             >
               {isLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -239,12 +312,13 @@ export const AuthPage: React.FC = () => {
             </Button>
 
             <div className="text-center space-y-3">
-              <button className="text-primary text-sm font-semibold hover:underline">
-                Resend OTP
+              <button 
+                onClick={handleResendOtp}
+                disabled={resendTimer > 0 || isLoading}
+                className={`text-sm font-semibold ${resendTimer > 0 ? 'text-muted-foreground' : 'text-primary hover:underline'}`}
+              >
+                {resendTimer > 0 ? `Resend OTP in ${resendTimer}s` : 'Resend OTP'}
               </button>
-              <p className="text-muted-foreground text-xs">
-                Didn't receive? Wait 30 seconds
-              </p>
             </div>
           </motion.div>
         )}

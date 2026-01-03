@@ -36,7 +36,7 @@ import {
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export const OwnerCustomersPage: React.FC = () => {
-  const { customers, setCustomers, milkProducts } = useApp();
+  const { customers, setCustomers, milkProducts, milkBrands } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<typeof customers[0] | null>(null);
   const [showAddCustomer, setShowAddCustomer] = useState(false);
@@ -143,6 +143,7 @@ export const OwnerCustomersPage: React.FC = () => {
         daysOfWeek: newCustomer.daysOfWeek,
         startDate: new Date().toISOString().split('T')[0],
         isActive: true,
+        paymentMethod: 'offline' as const,
       },
     };
 
@@ -289,34 +290,62 @@ export const OwnerCustomersPage: React.FC = () => {
     );
   };
 
-  // Milk Type Selection Component
-  const MilkTypeSelector = ({ value, onChange }: { value: string; onChange: (val: string) => void }) => (
-    <div className="space-y-2">
-      <label className="text-sm font-medium">Milk Type *</label>
-      <div className="grid grid-cols-2 gap-2">
-        {milkProducts.map(product => (
-          <button
-            key={product.id}
-            type="button"
-            onClick={() => onChange(product.id)}
-            className={`p-3 rounded-xl border-2 text-left transition-all ${
-              value === product.id 
-                ? 'border-primary bg-primary/5' 
-                : 'border-border hover:border-primary/50'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-xl">{product.icon}</span>
-              <div>
-                <p className="font-medium text-sm">{product.name}</p>
-                <p className="text-xs text-muted-foreground">₹{product.pricePerLiter}/L</p>
+  // Milk Type Selection Component with Brand categories
+  const MilkTypeSelector = ({ value, onChange }: { value: string; onChange: (val: string) => void }) => {
+    const selectedProduct = milkProducts.find(p => p.id === value);
+    const [expandedBrand, setExpandedBrand] = useState<string | null>(selectedProduct?.brandId || null);
+    
+    const getProductsByBrand = (brandId: string) => milkProducts.filter(p => p.brandId === brandId);
+    
+    return (
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Brand & Milk Type *</label>
+        <div className="space-y-2 max-h-[200px] overflow-y-auto">
+          {milkBrands.map(brand => {
+            const products = getProductsByBrand(brand.id);
+            const isExpanded = expandedBrand === brand.id;
+            const hasSelected = products.some(p => p.id === value);
+            
+            return (
+              <div key={brand.id} className={`rounded-xl border-2 overflow-hidden ${hasSelected ? 'border-primary' : 'border-border'}`}>
+                <button
+                  type="button"
+                  onClick={() => setExpandedBrand(isExpanded ? null : brand.id)}
+                  className="w-full p-3 flex items-center justify-between bg-card hover:bg-accent/50"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">{brand.logo}</span>
+                    <span className="font-medium text-sm">{brand.name}</span>
+                  </div>
+                  {hasSelected && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">Selected</span>}
+                </button>
+                {isExpanded && (
+                  <div className="p-2 pt-0 grid grid-cols-1 gap-1 bg-accent/30">
+                    {products.map(product => (
+                      <button
+                        key={product.id}
+                        type="button"
+                        onClick={() => onChange(product.id)}
+                        className={`p-2 rounded-lg flex items-center justify-between text-sm ${
+                          value === product.id ? 'bg-primary/10 text-primary' : 'bg-card hover:bg-accent'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <span>{product.icon}</span>
+                          <span>{product.name}</span>
+                        </span>
+                        <span className="font-medium">₹{product.pricePerLiter}/L</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-          </button>
-        ))}
+            );
+          })}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // Quantity Selector Component
   const QuantitySelector = ({ value, onAdjust }: { value: number; onAdjust: (delta: number) => void }) => (
