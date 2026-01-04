@@ -143,7 +143,7 @@ export const OwnerCustomersPage: React.FC = () => {
         daysOfWeek: newCustomer.daysOfWeek,
         startDate: new Date().toISOString().split('T')[0],
         isActive: true,
-        paymentMethod: 'offline' as const,
+        paymentMethod: 'cash' as const,
       },
     };
 

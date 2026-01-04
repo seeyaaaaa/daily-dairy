@@ -18,9 +18,10 @@ const scheduleOptions = [
 const quantityOptions = [0.5, 1, 1.5, 2, 2.5, 3];
 
 const paymentMethods: { id: PaymentMethod; label: string; description: string; icon: string }[] = [
-  { id: 'offline', label: 'Cash to Milkman', description: 'Pay in cash when milk is delivered', icon: '💵' },
+  { id: 'cash', label: 'Cash to Milkman', description: 'Pay in cash when milk is delivered', icon: '💵' },
   { id: 'upi', label: 'UPI Payment', description: 'Pay via Google Pay, PhonePe, etc.', icon: '📱' },
-  { id: 'online', label: 'Online Transfer', description: 'Bank transfer or card payment', icon: '💳' },
+  { id: 'bank_transfer', label: 'Bank Transfer', description: 'Direct bank transfer', icon: '🏦' },
+  { id: 'card', label: 'Card Payment', description: 'Credit/Debit card (coming soon)', icon: '💳' },
 ];
 
 export const SubscriptionPage: React.FC = () => {
@@ -38,7 +39,7 @@ export const SubscriptionPage: React.FC = () => {
   const [quantity, setQuantity] = useState(existingSubscription?.quantityPerDelivery || 1);
   const [scheduleType, setScheduleType] = useState<string>('daily');
   const [customDays, setCustomDays] = useState<number[]>(existingSubscription?.daysOfWeek || [0, 1, 2, 3, 4, 5, 6]);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(existingSubscription?.paymentMethod || 'offline');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(existingSubscription?.paymentMethod || 'cash');
   const [expandedBrand, setExpandedBrand] = useState<string | null>(selectedBrand);
 
   const selectedProduct = milkProducts.find(m => m.id === selectedMilk);

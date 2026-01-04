@@ -10,13 +10,13 @@ import { useApp } from '@/contexts/AppContext';
 import { 
   Users, Droplets, IndianRupee, Check, MapPin, 
   ArrowRight, Clock, Truck, AlertCircle, Navigation,
-  TrendingUp, Calendar
+  TrendingUp, Calendar, UserPlus, Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const OwnerDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { customers, milkProducts } = useApp();
+  const { customers, milkProducts, user } = useApp();
   const [deliveredIds, setDeliveredIds] = useState<string[]>([]);
 
   const today = new Date();
@@ -24,6 +24,7 @@ export const OwnerDashboard: React.FC = () => {
   const greeting = currentHour < 12 ? 'Good Morning' : currentHour < 17 ? 'Good Afternoon' : 'Good Evening';
   
   const totalCustomers = customers.length;
+  const isNewOwner = user?.isNewUser && totalCustomers === 0;
   const totalLiters = customers.reduce((sum, c) => sum + (c.subscription?.quantityPerDelivery || 0), 0);
   const expectedCollection = customers.reduce((sum, c) => {
     const milk = milkProducts.find(m => m.id === c.subscription?.milkProductId);
@@ -137,112 +138,154 @@ export const OwnerDashboard: React.FC = () => {
           </Card>
         </motion.div>
 
-        {/* Quick Actions */}
+        {/* Quick Actions - Always show */}
         <div className="grid grid-cols-2 gap-3">
+          <Button 
+            variant="outline" 
+            className="h-auto py-5 flex flex-col items-center gap-2 border-2 hover:border-primary hover:bg-accent/50"
+            onClick={() => navigate('/owner/customers')}
+          >
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+              <UserPlus className="w-6 h-6 text-primary" />
+            </div>
+            <span className="font-semibold">Add Customers</span>
+          </Button>
           <Button 
             variant="outline" 
             className="h-auto py-5 flex flex-col items-center gap-2 border-2 hover:border-primary hover:bg-accent/50"
             onClick={() => navigate('/owner/deliveries')}
           >
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Navigation className="w-6 h-6 text-primary" />
+            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+              <Navigation className="w-6 h-6 text-emerald-600" />
             </div>
             <span className="font-semibold">Start Route</span>
           </Button>
-          <Button 
-            variant="outline" 
-            className="h-auto py-5 flex flex-col items-center gap-2 border-2 hover:border-primary hover:bg-accent/50"
-            onClick={() => navigate('/owner/bills')}
-          >
-            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-              <IndianRupee className="w-6 h-6 text-emerald-600" />
-            </div>
-            <span className="font-semibold">Collect Payments</span>
-          </Button>
         </div>
 
-        {/* Upcoming Deliveries Preview */}
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-foreground flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-primary" />
-              Next Deliveries
-            </h2>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="text-primary"
-              onClick={() => navigate('/owner/deliveries')}
-            >
-              View All <ArrowRight className="w-4 h-4 ml-1" />
-            </Button>
-          </div>
-          
-          <div className="space-y-3">
-            {upcomingDeliveries.map((customer, index) => {
-              const milk = milkProducts.find(m => m.id === customer.subscription?.milkProductId);
-              const amount = (customer.subscription?.quantityPerDelivery || 0) * (milk?.pricePerLiter || 0);
-
-              return (
-                <motion.div
-                  key={customer.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 + index * 0.05 }}
-                >
-                  <Card variant="interactive" className="border-0 shadow-soft">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-lg">
-                            {index + 1}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-foreground">{customer.name}</p>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                              <MapPin className="w-3 h-3" /> A-{101 + index}, Sunshine Apt
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
-                            <p className="font-bold text-foreground">{customer.subscription?.quantityPerDelivery}L</p>
-                            <p className="text-xs text-primary font-medium">₹{amount}</p>
-                          </div>
-                          <Button 
-                            variant="fresh" 
-                            size="icon"
-                            className="h-10 w-10 rounded-xl shadow-primary"
-                            onClick={() => handleMarkDelivered(customer.id)}
-                          >
-                            <Check className="w-5 h-5" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              );
-            })}
-
-            {upcomingDeliveries.length === 0 && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="text-center py-10"
-              >
-                <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
-                  <Check className="w-10 h-10 text-emerald-600" />
+        {/* Getting Started for new owners */}
+        {isNewOwner && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card variant="fresh" className="p-5">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-primary" />
                 </div>
-                <p className="font-semibold text-foreground text-lg">All Done! 🎉</p>
-                <p className="text-sm text-muted-foreground mt-1">All deliveries completed for today</p>
-              </motion.div>
-            )}
-          </div>
-        </section>
+                <h3 className="font-semibold text-foreground">Getting Started</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">1</div>
+                  <p className="text-sm text-muted-foreground">Add your first customer</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">2</div>
+                  <p className="text-sm text-muted-foreground">Set up their subscription plan</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">3</div>
+                  <p className="text-sm text-muted-foreground">Start delivering & tracking!</p>
+                </div>
+              </div>
+              <Button 
+                variant="hero" 
+                className="w-full mt-4"
+                onClick={() => navigate('/owner/customers')}
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                Add First Customer
+              </Button>
+            </Card>
+          </motion.div>
+        )}
 
-        {/* Alerts */}
-        {pendingDeliveries > 0 && (
+        {/* Upcoming Deliveries Preview - Only show if has customers */}
+        {!isNewOwner && (
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-foreground flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-primary" />
+                Next Deliveries
+              </h2>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-primary"
+                onClick={() => navigate('/owner/deliveries')}
+              >
+                View All <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+            
+            <div className="space-y-3">
+              {upcomingDeliveries.map((customer, index) => {
+                const milk = milkProducts.find(m => m.id === customer.subscription?.milkProductId);
+                const amount = (customer.subscription?.quantityPerDelivery || 0) * (milk?.pricePerLiter || 0);
+
+                return (
+                  <motion.div
+                    key={customer.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 + index * 0.05 }}
+                  >
+                    <Card variant="interactive" className="border-0 shadow-soft">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-lg">
+                              {index + 1}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-foreground">{customer.name}</p>
+                              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                <MapPin className="w-3 h-3" /> A-{101 + index}, Sunshine Apt
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <p className="font-bold text-foreground">{customer.subscription?.quantityPerDelivery}L</p>
+                              <p className="text-xs text-primary font-medium">₹{amount}</p>
+                            </div>
+                            <Button 
+                              variant="fresh" 
+                              size="icon"
+                              className="h-10 w-10 rounded-xl shadow-primary"
+                              onClick={() => handleMarkDelivered(customer.id)}
+                            >
+                              <Check className="w-5 h-5" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
+
+              {upcomingDeliveries.length === 0 && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="text-center py-10"
+                >
+                  <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+                    <Check className="w-10 h-10 text-emerald-600" />
+                  </div>
+                  <p className="font-semibold text-foreground text-lg">All Done! 🎉</p>
+                  <p className="text-sm text-muted-foreground mt-1">All deliveries completed for today</p>
+                </motion.div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Alerts - Only show if has pending deliveries and not new owner */}
+        {!isNewOwner && pendingDeliveries > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
