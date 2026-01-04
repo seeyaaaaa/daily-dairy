@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/Logo';
-import { Droplets, BarChart3, Calendar, ArrowRight, ChevronRight, Sparkles } from 'lucide-react';
+import { useApp } from '@/contexts/AppContext';
+import { Droplets, BarChart3, Calendar, ArrowRight, ChevronRight, Sparkles, LogIn, UserPlus } from 'lucide-react';
 
 const slides = [
   {
@@ -32,108 +33,178 @@ const slides = [
 export const OnboardingPage: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const navigate = useNavigate();
+  const { setAuthMode } = useApp();
 
   const handleNext = () => {
     if (currentSlide < slides.length - 1) {
       setCurrentSlide(currentSlide + 1);
-    } else {
-      navigate('/auth');
     }
   };
 
   const handleSkip = () => {
+    // Show auth options
+    setCurrentSlide(slides.length);
+  };
+
+  const handleLogin = () => {
+    setAuthMode('login');
     navigate('/auth');
   };
+
+  const handleSignup = () => {
+    setAuthMode('signup');
+    navigate('/auth');
+  };
+
+  const isOnFinalScreen = currentSlide >= slides.length;
 
   return (
     <div className="min-h-screen flex flex-col bg-background max-w-md mx-auto overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between p-5 pt-8">
         <Logo size="sm" showText={false} />
-        <Button variant="ghost" onClick={handleSkip} className="text-muted-foreground">
-          Skip
-          <ChevronRight className="w-4 h-4 ml-1" />
-        </Button>
+        {!isOnFinalScreen && (
+          <Button variant="ghost" onClick={handleSkip} className="text-muted-foreground">
+            Skip
+            <ChevronRight className="w-4 h-4 ml-1" />
+          </Button>
+        )}
       </div>
 
       {/* Slides */}
       <div className="flex-1 flex flex-col justify-center px-8 relative">
         <AnimatePresence mode="wait">
-          <motion.div
-            key={currentSlide}
-            initial={{ opacity: 0, x: 60 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -60 }}
-            transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="text-center"
-          >
-            {/* Decorative background */}
-            <div className={`absolute inset-0 bg-gradient-to-b ${slides[currentSlide].color} opacity-40 blur-3xl -z-10`} />
-            
-            {/* Icon container with floating animation */}
-            <motion.div 
-              className="relative w-40 h-40 mx-auto mb-10"
-              animate={{ y: [0, -8, 0] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          {!isOnFinalScreen ? (
+            <motion.div
+              key={currentSlide}
+              initial={{ opacity: 0, x: 60 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -60 }}
+              transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="text-center"
             >
-              <div className="absolute inset-0 rounded-[2.5rem] gradient-brand opacity-20 blur-xl" />
-              <div className="relative w-full h-full rounded-[2.5rem] gradient-card shadow-elevated border border-border/50 flex items-center justify-center">
-                <span className="text-7xl">{slides[currentSlide].emoji}</span>
-              </div>
-              {/* Sparkle decorations */}
-              <motion.div
-                className="absolute -top-2 -right-2"
-                animate={{ rotate: [0, 15, 0], scale: [1, 1.1, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
+              {/* Decorative background */}
+              <div className={`absolute inset-0 bg-gradient-to-b ${slides[currentSlide].color} opacity-40 blur-3xl -z-10`} />
+              
+              {/* Icon container with floating animation */}
+              <motion.div 
+                className="relative w-40 h-40 mx-auto mb-10"
+                animate={{ y: [0, -8, 0] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
               >
-                <Sparkles className="w-6 h-6 text-primary" />
+                <div className="absolute inset-0 rounded-[2.5rem] gradient-brand opacity-20 blur-xl" />
+                <div className="relative w-full h-full rounded-[2.5rem] gradient-card shadow-elevated border border-border/50 flex items-center justify-center">
+                  <span className="text-7xl">{slides[currentSlide].emoji}</span>
+                </div>
+                {/* Sparkle decorations */}
+                <motion.div
+                  className="absolute -top-2 -right-2"
+                  animate={{ rotate: [0, 15, 0], scale: [1, 1.1, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  <Sparkles className="w-6 h-6 text-primary" />
+                </motion.div>
               </motion.div>
+
+              {/* Title */}
+              <h1 className="text-3xl font-bold text-foreground mb-4 text-balance leading-tight">
+                {slides[currentSlide].title}
+              </h1>
+
+              {/* Subtitle */}
+              <p className="text-lg text-muted-foreground text-balance max-w-[280px] mx-auto">
+                {slides[currentSlide].subtitle}
+              </p>
             </motion.div>
+          ) : (
+            <motion.div
+              key="auth-options"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="text-center"
+            >
+              {/* Logo */}
+              <div className="mb-8">
+                <Logo size="xl" className="justify-center" />
+              </div>
 
-            {/* Title */}
-            <h1 className="text-3xl font-bold text-foreground mb-4 text-balance leading-tight">
-              {slides[currentSlide].title}
-            </h1>
+              {/* Welcome text */}
+              <h1 className="text-2xl font-bold text-foreground mb-2">
+                Welcome to MilkMate
+              </h1>
+              <p className="text-muted-foreground mb-8">
+                Fresh milk delivered to your doorstep, every day
+              </p>
 
-            {/* Subtitle */}
-            <p className="text-lg text-muted-foreground text-balance max-w-[280px] mx-auto">
-              {slides[currentSlide].subtitle}
-            </p>
-          </motion.div>
+              {/* Auth Options */}
+              <div className="space-y-4">
+                <Button 
+                  variant="hero" 
+                  size="xl" 
+                  className="w-full group" 
+                  onClick={handleSignup}
+                >
+                  <UserPlus className="w-5 h-5 mr-2" />
+                  <span>Sign Up</span>
+                  <ArrowRight className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" />
+                </Button>
+
+                <Button 
+                  variant="outline" 
+                  size="xl" 
+                  className="w-full group border-2" 
+                  onClick={handleLogin}
+                >
+                  <LogIn className="w-5 h-5 mr-2" />
+                  <span>Login</span>
+                  <ArrowRight className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" />
+                </Button>
+              </div>
+
+              <p className="text-xs text-muted-foreground mt-8">
+                By continuing, you agree to our{' '}
+                <span className="text-primary">Terms of Service</span> and{' '}
+                <span className="text-primary">Privacy Policy</span>
+              </p>
+            </motion.div>
+          )}
         </AnimatePresence>
       </div>
 
       {/* Pagination & Actions */}
-      <div className="p-8 space-y-8">
-        {/* Progress dots */}
-        <div className="flex justify-center gap-2">
-          {slides.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentSlide(index)}
-              className="relative h-2 rounded-full transition-all duration-300 overflow-hidden"
-              style={{ width: index === currentSlide ? 32 : 8 }}
-            >
-              <div className={`absolute inset-0 rounded-full transition-all duration-300 ${
-                index === currentSlide 
-                  ? 'gradient-brand' 
-                  : 'bg-border hover:bg-muted-foreground/30'
-              }`} />
-            </button>
-          ))}
-        </div>
+      {!isOnFinalScreen && (
+        <div className="p-8 space-y-8">
+          {/* Progress dots */}
+          <div className="flex justify-center gap-2">
+            {slides.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentSlide(index)}
+                className="relative h-2 rounded-full transition-all duration-300 overflow-hidden"
+                style={{ width: index === currentSlide ? 32 : 8 }}
+              >
+                <div className={`absolute inset-0 rounded-full transition-all duration-300 ${
+                  index === currentSlide 
+                    ? 'gradient-brand' 
+                    : 'bg-border hover:bg-muted-foreground/30'
+                }`} />
+              </button>
+            ))}
+          </div>
 
-        {/* CTA Button */}
-        <Button 
-          variant="hero" 
-          size="xl" 
-          className="w-full group" 
-          onClick={handleNext}
-        >
-          <span>{currentSlide === slides.length - 1 ? 'Get Started' : 'Next'}</span>
-          <ArrowRight className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" />
-        </Button>
-      </div>
+          {/* CTA Button */}
+          <Button 
+            variant="hero" 
+            size="xl" 
+            className="w-full group" 
+            onClick={currentSlide === slides.length - 1 ? handleSkip : handleNext}
+          >
+            <span>{currentSlide === slides.length - 1 ? 'Get Started' : 'Next'}</span>
+            <ArrowRight className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
