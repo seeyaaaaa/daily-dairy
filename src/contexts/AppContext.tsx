@@ -11,6 +11,8 @@ export interface User {
   name: string;
   role: UserRole;
   isNewUser?: boolean;
+  dairyAddress?: string;
+  dairyArea?: string;
 }
 
 export interface Address {

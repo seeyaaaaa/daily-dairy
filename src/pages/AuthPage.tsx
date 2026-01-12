@@ -7,10 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Logo } from '@/components/Logo';
 import { useApp } from '@/contexts/AppContext';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { User, Store, Phone, ArrowRight, Loader2, Shield, ChevronLeft, Bell, Check, X } from 'lucide-react';
+import { User, Store, Phone, ArrowRight, Loader2, Shield, ChevronLeft, Bell, Check, X, MapPin, Building } from 'lucide-react';
 import { toast } from 'sonner';
 
-type Step = 'role' | 'phone' | 'otp' | 'notifications';
+type Step = 'role' | 'phone' | 'otp' | 'vendor-details' | 'notifications';
 
 export const AuthPage: React.FC = () => {
   const [step, setStep] = useState<Step>('role');
@@ -19,6 +19,12 @@ export const AuthPage: React.FC = () => {
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
+  
+  // Vendor details
+  const [dairyName, setDairyName] = useState('');
+  const [dairyAddress, setDairyAddress] = useState('');
+  const [dairyArea, setDairyArea] = useState('');
+  
   const navigate = useNavigate();
   const { setUser, setIsOnboarded, authMode, setAuthMode } = useApp();
   const { supported, requestPermission } = usePushNotifications();
@@ -79,9 +85,26 @@ export const AuthPage: React.FC = () => {
     // Mock OTP verification - any 6 digit OTP works
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // OTP verified, now show notification permission step
-    setStep('notifications');
+    // For vendor, ask for dairy details first
+    if (selectedRole === 'owner') {
+      setStep('vendor-details');
+    } else {
+      setStep('notifications');
+    }
     setIsLoading(false);
+  };
+
+  const handleVendorDetailsSubmit = () => {
+    if (!dairyName.trim()) {
+      toast.error('Please enter your dairy name');
+      return;
+    }
+    if (!dairyAddress.trim()) {
+      toast.error('Please enter your dairy address');
+      return;
+    }
+    
+    setStep('notifications');
   };
 
   const handleNotificationChoice = async (enable: boolean) => {
@@ -102,9 +125,11 @@ export const AuthPage: React.FC = () => {
     setUser({
       id: 'user-' + Date.now(),
       phone: '+91' + phone,
-      name: selectedRole === 'owner' ? 'Sharma Dairy' : '',
+      name: selectedRole === 'owner' ? dairyName : '',
       role: selectedRole,
       isNewUser,
+      dairyAddress: selectedRole === 'owner' ? dairyAddress : undefined,
+      dairyArea: selectedRole === 'owner' ? dairyArea : undefined,
     });
     
     toast.success('Welcome to MilkMate!');
@@ -114,6 +139,27 @@ export const AuthPage: React.FC = () => {
     } else {
       setIsOnboarded(true);
       navigate('/owner');
+    }
+  };
+
+  const handleBack = () => {
+    switch (step) {
+      case 'phone':
+        setStep('role');
+        break;
+      case 'otp':
+        setStep('phone');
+        break;
+      case 'vendor-details':
+        setStep('otp');
+        break;
+      case 'notifications':
+        if (selectedRole === 'owner') {
+          setStep('vendor-details');
+        } else {
+          setStep('otp');
+        }
+        break;
     }
   };
 
@@ -218,7 +264,7 @@ export const AuthPage: React.FC = () => {
               className="space-y-6"
             >
               <button 
-                onClick={() => setStep('role')}
+                onClick={handleBack}
                 className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors mb-4"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -276,7 +322,7 @@ export const AuthPage: React.FC = () => {
               className="space-y-6"
             >
               <button 
-                onClick={() => setStep('phone')}
+                onClick={handleBack}
                 className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors mb-4"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -326,6 +372,74 @@ export const AuthPage: React.FC = () => {
                   {resendTimer > 0 ? `Resend OTP in ${resendTimer}s` : 'Resend OTP'}
                 </button>
               </div>
+            </motion.div>
+          )}
+
+          {step === 'vendor-details' && (
+            <motion.div
+              key="vendor-details"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-6"
+            >
+              <button 
+                onClick={handleBack}
+                className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors mb-4"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span className="text-sm">Back</span>
+              </button>
+
+              <div className="text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[hsl(var(--owner-primary))]/10 flex items-center justify-center">
+                  <Building className="w-8 h-8 text-[hsl(var(--owner-primary))]" />
+                </div>
+                <h2 className="text-2xl font-bold text-foreground mb-2">Your Dairy Details</h2>
+                <p className="text-muted-foreground">Tell us about your milk shop</p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Dairy / Shop Name *</label>
+                  <Input
+                    placeholder="e.g., Sharma Dairy"
+                    value={dairyName}
+                    onChange={(e) => setDairyName(e.target.value)}
+                    className="h-12"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Shop Address *</label>
+                  <Input
+                    placeholder="e.g., Shop No. 5, Main Market"
+                    value={dairyAddress}
+                    onChange={(e) => setDairyAddress(e.target.value)}
+                    className="h-12"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Area in Pune</label>
+                  <Input
+                    placeholder="e.g., Kothrud, Baner, Wakad"
+                    value={dairyArea}
+                    onChange={(e) => setDairyArea(e.target.value)}
+                    className="h-12"
+                  />
+                </div>
+              </div>
+
+              <Button 
+                variant="hero" 
+                size="lg" 
+                className="w-full" 
+                onClick={handleVendorDetailsSubmit}
+              >
+                <span>Continue</span>
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
             </motion.div>
           )}
 
