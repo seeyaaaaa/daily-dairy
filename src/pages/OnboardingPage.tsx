@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/Logo';
-import { useApp } from '@/contexts/AppContext';
-import { Droplets, BarChart3, Calendar, ArrowRight, ChevronRight, Sparkles, LogIn, UserPlus } from 'lucide-react';
+import { useApp, Language } from '@/contexts/AppContext';
+import { Droplets, BarChart3, Calendar, ArrowRight, ChevronRight, Sparkles, LogIn, UserPlus, Globe, Check } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 
 const slides = [
   {
@@ -30,10 +31,19 @@ const slides = [
   },
 ];
 
+const languages: { id: Language; name: string; nativeName: string; flag: string }[] = [
+  { id: 'en', name: 'English', nativeName: 'English', flag: '🇬🇧' },
+  { id: 'hi', name: 'Hindi', nativeName: 'हिन्दी', flag: '🇮🇳' },
+  { id: 'mr', name: 'Marathi', nativeName: 'मराठी', flag: '🇮🇳' },
+];
+
+type ScreenType = 'slides' | 'language' | 'auth';
+
 export const OnboardingPage: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [screen, setScreen] = useState<ScreenType>('slides');
   const navigate = useNavigate();
-  const { setAuthMode } = useApp();
+  const { setAuthMode, language, setLanguage } = useApp();
 
   const handleNext = () => {
     if (currentSlide < slides.length - 1) {
@@ -42,8 +52,15 @@ export const OnboardingPage: React.FC = () => {
   };
 
   const handleSkip = () => {
-    // Show auth options
-    setCurrentSlide(slides.length);
+    setScreen('language');
+  };
+
+  const handleLanguageSelect = (lang: Language) => {
+    setLanguage(lang);
+  };
+
+  const handleLanguageContinue = () => {
+    setScreen('auth');
   };
 
   const handleLogin = () => {
@@ -56,14 +73,12 @@ export const OnboardingPage: React.FC = () => {
     navigate('/auth');
   };
 
-  const isOnFinalScreen = currentSlide >= slides.length;
-
   return (
     <div className="min-h-screen flex flex-col bg-background max-w-md mx-auto overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between p-5 pt-8">
         <Logo size="sm" showText={false} />
-        {!isOnFinalScreen && (
+        {screen === 'slides' && (
           <Button variant="ghost" onClick={handleSkip} className="text-muted-foreground">
             Skip
             <ChevronRight className="w-4 h-4 ml-1" />
@@ -71,12 +86,13 @@ export const OnboardingPage: React.FC = () => {
         )}
       </div>
 
-      {/* Slides */}
+      {/* Content */}
       <div className="flex-1 flex flex-col justify-center px-8 relative">
         <AnimatePresence mode="wait">
-          {!isOnFinalScreen ? (
+          {/* Slides */}
+          {screen === 'slides' && (
             <motion.div
-              key={currentSlide}
+              key={`slide-${currentSlide}`}
               initial={{ opacity: 0, x: 60 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -60 }}
@@ -116,7 +132,71 @@ export const OnboardingPage: React.FC = () => {
                 {slides[currentSlide].subtitle}
               </p>
             </motion.div>
-          ) : (
+          )}
+
+          {/* Language Selection */}
+          {screen === 'language' && (
+            <motion.div
+              key="language"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="text-center"
+            >
+              <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <Globe className="w-8 h-8 text-primary" />
+              </div>
+
+              <h1 className="text-2xl font-bold text-foreground mb-2">
+                Choose Your Language
+              </h1>
+              <p className="text-muted-foreground mb-8">
+                Select your preferred language
+              </p>
+
+              <div className="space-y-3">
+                {languages.map((lang) => (
+                  <Card 
+                    key={lang.id}
+                    className={`p-0 cursor-pointer transition-all ${
+                      language === lang.id 
+                        ? 'ring-2 ring-primary border-primary bg-primary/5' 
+                        : 'hover:border-primary/50'
+                    }`}
+                    onClick={() => handleLanguageSelect(lang.id)}
+                  >
+                    <CardContent className="p-4 flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <span className="text-3xl">{lang.flag}</span>
+                        <div className="text-left">
+                          <p className="font-semibold text-foreground">{lang.nativeName}</p>
+                          <p className="text-sm text-muted-foreground">{lang.name}</p>
+                        </div>
+                      </div>
+                      {language === lang.id && (
+                        <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                          <Check className="w-4 h-4 text-primary-foreground" />
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <Button 
+                variant="hero" 
+                size="xl" 
+                className="w-full mt-8 group" 
+                onClick={handleLanguageContinue}
+              >
+                <span>Continue</span>
+                <ArrowRight className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" />
+              </Button>
+            </motion.div>
+          )}
+
+          {/* Auth Options */}
+          {screen === 'auth' && (
             <motion.div
               key="auth-options"
               initial={{ opacity: 0, y: 20 }}
@@ -173,7 +253,7 @@ export const OnboardingPage: React.FC = () => {
       </div>
 
       {/* Pagination & Actions */}
-      {!isOnFinalScreen && (
+      {screen === 'slides' && (
         <div className="p-8 space-y-8">
           {/* Progress dots */}
           <div className="flex justify-center gap-2">

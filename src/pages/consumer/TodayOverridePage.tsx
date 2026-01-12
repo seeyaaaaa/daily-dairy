@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { MobileLayout } from '@/components/MobileLayout';
 import { useApp, DailyOverride } from '@/contexts/AppContext';
-import { ArrowLeft, Pause, Play, Minus, Plus, Check } from 'lucide-react';
+import { ArrowLeft, Pause, Play, Minus, Plus, Check, Clock, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const TodayOverridePage: React.FC = () => {
   const navigate = useNavigate();
-  const { subscriptions, milkProducts, dailyOverrides, addDailyOverride } = useApp();
+  const { subscriptions, milkProducts, dailyOverrides, addDailyOverride, addresses } = useApp();
   
   const activeSubscription = subscriptions[0];
   const activeMilk = activeSubscription 
@@ -29,19 +29,86 @@ export const TodayOverridePage: React.FC = () => {
   );
   const [isPaused, setIsPaused] = useState(existingOverride?.isPaused ?? false);
 
+  // Check if changes are allowed (3 hours before delivery)
+  const deliverySlot = addresses[0]?.deliverySlot || 'morning';
+  const customSlotTime = addresses[0]?.customSlotTime;
+  
+  const cutoffInfo = useMemo(() => {
+    let deliveryHour: number;
+    
+    switch (deliverySlot) {
+      case 'morning':
+        deliveryHour = 6; // 6 AM
+        break;
+      case 'afternoon':
+        deliveryHour = 12; // 12 PM
+        break;
+      case 'evening':
+        deliveryHour = 18; // 6 PM
+        break;
+      case 'custom':
+        // Parse custom time like "07:30"
+        if (customSlotTime) {
+          const [hours] = customSlotTime.split(':').map(Number);
+          deliveryHour = hours;
+        } else {
+          deliveryHour = 6;
+        }
+        break;
+      default:
+        deliveryHour = 6;
+    }
+
+    // Calculate cutoff time (3 hours before delivery)
+    const cutoffHour = deliveryHour - 3;
+    const currentHour = today.getHours();
+    const currentMinutes = today.getMinutes();
+    
+    // Check if current time is past cutoff
+    const isPastCutoff = currentHour > cutoffHour || 
+      (currentHour === cutoffHour && currentMinutes > 0);
+    
+    // Format cutoff time for display
+    const cutoffTime = cutoffHour >= 0 
+      ? `${cutoffHour.toString().padStart(2, '0')}:00` 
+      : `${(24 + cutoffHour).toString().padStart(2, '0')}:00`;
+    
+    const deliveryTime = `${deliveryHour.toString().padStart(2, '0')}:00`;
+    
+    return {
+      isPastCutoff,
+      cutoffTime,
+      deliveryTime,
+      deliveryHour,
+    };
+  }, [deliverySlot, customSlotTime, today]);
+
   const handleQuantityChange = (delta: number) => {
+    if (cutoffInfo.isPastCutoff) {
+      toast.error("Can't modify order within 3 hours of delivery");
+      return;
+    }
     const newQty = Math.max(0.5, Math.min(5, quantity + delta));
     setQuantity(newQty);
     if (isPaused) setIsPaused(false);
   };
 
   const handlePauseToggle = () => {
+    if (cutoffInfo.isPastCutoff) {
+      toast.error("Can't modify order within 3 hours of delivery");
+      return;
+    }
     setIsPaused(!isPaused);
   };
 
   const handleSave = () => {
     if (!activeSubscription) {
       toast.error('No active subscription found');
+      return;
+    }
+
+    if (cutoffInfo.isPastCutoff) {
+      toast.error("Can't modify order within 3 hours of delivery");
       return;
     }
 
@@ -104,6 +171,53 @@ export const TodayOverridePage: React.FC = () => {
           </h2>
         </motion.div>
 
+        {/* Cutoff Warning */}
+        {cutoffInfo.isPastCutoff && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Card className="border-destructive bg-destructive/5">
+              <CardContent className="p-4 flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-destructive" />
+                </div>
+                <div>
+                  <p className="font-semibold text-destructive">Changes Not Allowed</p>
+                  <p className="text-sm text-muted-foreground">
+                    Today's order can't be modified as it's within 3 hours of delivery time ({cutoffInfo.deliveryTime}).
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Changes must be made before {cutoffInfo.cutoffTime}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Delivery Time Info */}
+        {!cutoffInfo.isPastCutoff && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Card className="border-primary/30 bg-primary/5">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">Delivery at {cutoffInfo.deliveryTime}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Changes allowed until {cutoffInfo.cutoffTime}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
         {/* Current Plan Info */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -133,7 +247,7 @@ export const TodayOverridePage: React.FC = () => {
         >
           <Card 
             variant={isPaused ? 'highlight' : 'interactive'} 
-            className="p-0 cursor-pointer"
+            className={`p-0 ${cutoffInfo.isPastCutoff ? 'opacity-50 pointer-events-none' : 'cursor-pointer'}`}
             onClick={handlePauseToggle}
           >
             <CardContent className="p-5 flex items-center justify-between">
@@ -165,6 +279,7 @@ export const TodayOverridePage: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
+            className={cutoffInfo.isPastCutoff ? 'opacity-50 pointer-events-none' : ''}
           >
             <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
               Or Adjust Quantity
@@ -174,7 +289,7 @@ export const TodayOverridePage: React.FC = () => {
                 <div className="flex items-center justify-center gap-6">
                   <button
                     onClick={() => handleQuantityChange(-0.5)}
-                    disabled={quantity <= 0.5}
+                    disabled={quantity <= 0.5 || cutoffInfo.isPastCutoff}
                     className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-accent transition-colors"
                   >
                     <Minus className="w-6 h-6" />
@@ -185,7 +300,7 @@ export const TodayOverridePage: React.FC = () => {
                   </div>
                   <button
                     onClick={() => handleQuantityChange(0.5)}
-                    disabled={quantity >= 5}
+                    disabled={quantity >= 5 || cutoffInfo.isPastCutoff}
                     className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-accent transition-colors"
                   >
                     <Plus className="w-6 h-6" />
@@ -241,8 +356,14 @@ export const TodayOverridePage: React.FC = () => {
           <Button variant="outline" size="lg" className="flex-1" onClick={() => navigate(-1)}>
             Cancel
           </Button>
-          <Button variant="fresh" size="lg" className="flex-1" onClick={handleSave}>
-            Confirm Changes
+          <Button 
+            variant="fresh" 
+            size="lg" 
+            className="flex-1" 
+            onClick={handleSave}
+            disabled={cutoffInfo.isPastCutoff}
+          >
+            {cutoffInfo.isPastCutoff ? 'Not Allowed' : 'Confirm Changes'}
           </Button>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,7 +8,7 @@ import { useApp } from '@/contexts/AppContext';
 import { 
   Phone, MapPin, Edit2, Pause, Play, UserPlus, Search,
   ChevronRight, Droplets, MoreVertical, Trash2, Users,
-  Minus, Plus, Save, Calendar
+  Minus, Plus, Save, Calendar, Filter, X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -32,8 +32,42 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+const PUNE_AREAS = [
+  'All Areas',
+  'Kothrud',
+  'Baner',
+  'Wakad',
+  'Hinjewadi',
+  'Aundh',
+  'Shivaji Nagar',
+  'Deccan',
+  'Viman Nagar',
+  'Kalyani Nagar',
+  'Magarpatta',
+  'Hadapsar',
+  'Kharadi',
+  'Pimple Saudagar',
+  'Pune Station',
+  'Camp',
+];
+
+const QUANTITY_FILTERS = [
+  { id: 'all', label: 'All Quantities' },
+  { id: 'less_1', label: 'Less than 1L' },
+  { id: '1_2', label: '1L - 2L' },
+  { id: '2_3', label: '2L - 3L' },
+  { id: '3_plus', label: '3L+' },
+];
 
 export const OwnerCustomersPage: React.FC = () => {
   const { customers, setCustomers, milkProducts, milkBrands } = useApp();
@@ -43,12 +77,18 @@ export const OwnerCustomersPage: React.FC = () => {
   const [pausedCustomers, setPausedCustomers] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState('active');
   const [isEditing, setIsEditing] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Filter states
+  const [areaFilter, setAreaFilter] = useState('All Areas');
+  const [quantityFilter, setQuantityFilter] = useState('all');
 
   const [newCustomer, setNewCustomer] = useState({
     name: '',
     phone: '',
     flat: '',
     building: '',
+    area: '',
     milkProductId: '1',
     quantityPerDelivery: 1,
     daysOfWeek: [0, 1, 2, 3, 4, 5, 6] as number[],
@@ -60,15 +100,50 @@ export const OwnerCustomersPage: React.FC = () => {
     daysOfWeek: [] as number[],
   });
 
-  const activeCustomers = customers.filter(c => 
-    !pausedCustomers.includes(c.id) && 
-    c.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  
-  const pausedCustomersList = customers.filter(c => 
-    pausedCustomers.includes(c.id) && 
-    c.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter customers based on search, area, and quantity
+  const filteredCustomers = useMemo(() => {
+    return customers.filter(c => {
+      // Search filter
+      const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           c.phone.includes(searchQuery);
+      
+      // Area filter (mock - in real app this would come from address)
+      const customerArea = PUNE_AREAS[Math.floor(Math.random() * (PUNE_AREAS.length - 1)) + 1];
+      const matchesArea = areaFilter === 'All Areas' || customerArea === areaFilter;
+      
+      // Quantity filter
+      const qty = c.subscription?.quantityPerDelivery || 0;
+      let matchesQuantity = true;
+      switch (quantityFilter) {
+        case 'less_1':
+          matchesQuantity = qty < 1;
+          break;
+        case '1_2':
+          matchesQuantity = qty >= 1 && qty < 2;
+          break;
+        case '2_3':
+          matchesQuantity = qty >= 2 && qty < 3;
+          break;
+        case '3_plus':
+          matchesQuantity = qty >= 3;
+          break;
+        default:
+          matchesQuantity = true;
+      }
+      
+      return matchesSearch && matchesArea && matchesQuantity;
+    });
+  }, [customers, searchQuery, areaFilter, quantityFilter]);
+
+  const activeCustomers = filteredCustomers.filter(c => !pausedCustomers.includes(c.id));
+  const pausedCustomersList = filteredCustomers.filter(c => pausedCustomers.includes(c.id));
+
+  const activeFiltersCount = (areaFilter !== 'All Areas' ? 1 : 0) + (quantityFilter !== 'all' ? 1 : 0);
+
+  const clearFilters = () => {
+    setAreaFilter('All Areas');
+    setQuantityFilter('all');
+  };
 
   const handleTogglePause = (customerId: string) => {
     if (pausedCustomers.includes(customerId)) {
@@ -134,6 +209,7 @@ export const OwnerCustomersPage: React.FC = () => {
       name: newCustomer.name,
       phone: newCustomer.phone,
       addressId: newId,
+      isNewUser: true,
       subscription: {
         id: `s${newId}`,
         customerId: newId,
@@ -154,6 +230,7 @@ export const OwnerCustomersPage: React.FC = () => {
       phone: '', 
       flat: '', 
       building: '',
+      area: '',
       milkProductId: '1',
       quantityPerDelivery: 1,
       daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
@@ -213,6 +290,7 @@ export const OwnerCustomersPage: React.FC = () => {
 
   const CustomerCard = ({ customer, index, isPaused }: { customer: typeof customers[0], index: number, isPaused: boolean }) => {
     const milk = milkProducts.find(m => m.id === customer.subscription?.milkProductId);
+    const mockArea = PUNE_AREAS[(index % (PUNE_AREAS.length - 1)) + 1];
     
     return (
       <motion.div
@@ -235,7 +313,7 @@ export const OwnerCustomersPage: React.FC = () => {
                 <div>
                   <p className="font-semibold text-foreground">{customer.name}</p>
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <MapPin className="w-3 h-3" /> A-{101 + index}, Sunrise Towers
+                    <MapPin className="w-3 h-3" /> {mockArea}
                   </p>
                 </div>
               </div>
@@ -450,16 +528,106 @@ export const OwnerCustomersPage: React.FC = () => {
       </div>
 
       <div className="px-5 space-y-4 pb-24">
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input 
-            placeholder="Search by name..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-card border-border"
-          />
+        {/* Search & Filter */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search by name or phone..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 bg-card border-border"
+            />
+          </div>
+          
+          <Sheet open={showFilters} onOpenChange={setShowFilters}>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="icon" className="relative">
+                <Filter className="w-4 h-4" />
+                {activeFiltersCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center">
+                    {activeFiltersCount}
+                  </span>
+                )}
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="max-w-md mx-auto rounded-t-2xl">
+              <SheetHeader>
+                <SheetTitle className="flex items-center justify-between">
+                  <span>Filter Customers</span>
+                  {activeFiltersCount > 0 && (
+                    <Button variant="ghost" size="sm" onClick={clearFilters}>
+                      <X className="w-4 h-4 mr-1" /> Clear
+                    </Button>
+                  )}
+                </SheetTitle>
+              </SheetHeader>
+              
+              <div className="space-y-5 py-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Area in Pune</label>
+                  <Select value={areaFilter} onValueChange={setAreaFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select area" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PUNE_AREAS.map(area => (
+                        <SelectItem key={area} value={area}>{area}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Order Quantity</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {QUANTITY_FILTERS.map(filter => (
+                      <Button
+                        key={filter.id}
+                        variant={quantityFilter === filter.id ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setQuantityFilter(filter.id)}
+                        className="text-xs"
+                      >
+                        {filter.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <Button 
+                  variant="fresh" 
+                  className="w-full" 
+                  onClick={() => setShowFilters(false)}
+                >
+                  Apply Filters
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
+
+        {/* Active Filters Display */}
+        {activeFiltersCount > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {areaFilter !== 'All Areas' && (
+              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full flex items-center gap-1">
+                <MapPin className="w-3 h-3" /> {areaFilter}
+                <button onClick={() => setAreaFilter('All Areas')}>
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+            {quantityFilter !== 'all' && (
+              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full flex items-center gap-1">
+                <Droplets className="w-3 h-3" /> {QUANTITY_FILTERS.find(f => f.id === quantityFilter)?.label}
+                <button onClick={() => setQuantityFilter('all')}>
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -553,6 +721,22 @@ export const OwnerCustomersPage: React.FC = () => {
                   className="mt-1"
                 />
               </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Area</label>
+              <Select 
+                value={newCustomer.area} 
+                onValueChange={(val) => setNewCustomer(prev => ({ ...prev, area: val }))}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select area" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PUNE_AREAS.slice(1).map(area => (
+                    <SelectItem key={area} value={area}>{area}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="border-t pt-4">
