@@ -1,24 +1,28 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
 import { useApp, Address } from '@/contexts/AppContext';
-import { ArrowRight, MapPin, Clock, Check } from 'lucide-react';
+import { useTranslation } from '@/hooks/useTranslation';
+import { ArrowRight, MapPin, Clock, Check, ChevronLeft, User, Home, Building } from 'lucide-react';
 import { toast } from 'sonner';
 
+type Step = 'name' | 'address-basic' | 'address-detail' | 'delivery-time';
+
 const deliverySlots = [
-  { id: '5-6', label: '5:00 - 6:00 AM', shortLabel: '5-6 AM', icon: '🌅', description: 'Early bird delivery' },
-  { id: '6-7', label: '6:00 - 7:00 AM', shortLabel: '6-7 AM', icon: '☀️', description: 'Morning fresh' },
-  { id: '7-8', label: '7:00 - 8:00 AM', shortLabel: '7-8 AM', icon: '🌞', description: 'Breakfast time' },
-  { id: '8-9', label: '8:00 - 9:00 AM', shortLabel: '8-9 AM', icon: '🏠', description: 'Late morning' },
-  { id: 'custom', label: 'Custom Time', shortLabel: 'Custom', icon: '⏰', description: 'Choose your time' },
+  { id: '5-6', label: '5:00 - 6:00 AM', icon: '🌅', description: 'Early bird delivery' },
+  { id: '6-7', label: '6:00 - 7:00 AM', icon: '☀️', description: 'Morning fresh' },
+  { id: '7-8', label: '7:00 - 8:00 AM', icon: '🌞', description: 'Breakfast time' },
+  { id: '8-9', label: '8:00 - 9:00 AM', icon: '🏠', description: 'Late morning' },
+  { id: 'custom', label: 'Custom Time', icon: '⏰', description: 'Choose your time' },
 ];
 
 export const SetupProfilePage: React.FC = () => {
-  const [step, setStep] = useState<'name' | 'address'>('name');
+  const [step, setStep] = useState<Step>('name');
   const [name, setName] = useState('');
   const [flat, setFlat] = useState('');
   const [building, setBuilding] = useState('');
@@ -31,6 +35,17 @@ export const SetupProfilePage: React.FC = () => {
   
   const navigate = useNavigate();
   const { user, setUser, addAddress, setIsOnboarded } = useApp();
+  const { t } = useTranslation();
+
+  const steps: Step[] = ['name', 'address-basic', 'address-detail', 'delivery-time'];
+  const currentStepIndex = steps.indexOf(step);
+  const progress = ((currentStepIndex + 1) / steps.length) * 100;
+
+  const handleBack = () => {
+    if (currentStepIndex > 0) {
+      setStep(steps[currentStepIndex - 1]);
+    }
+  };
 
   const handleNameSubmit = () => {
     if (!name.trim()) {
@@ -38,15 +53,26 @@ export const SetupProfilePage: React.FC = () => {
       return;
     }
     setUser({ ...user!, name });
-    setStep('address');
+    setStep('address-basic');
   };
 
-  const handleAddressSubmit = () => {
-    if (!flat.trim() || !building.trim() || !area.trim()) {
-      toast.error('Please fill in the required fields');
+  const handleAddressBasicSubmit = () => {
+    if (!flat.trim() || !building.trim()) {
+      toast.error('Please fill in all required fields');
       return;
     }
+    setStep('address-detail');
+  };
 
+  const handleAddressDetailSubmit = () => {
+    if (!area.trim()) {
+      toast.error('Please enter your area');
+      return;
+    }
+    setStep('delivery-time');
+  };
+
+  const handleComplete = () => {
     const address: Address = {
       id: 'addr-' + Date.now(),
       flat,
@@ -66,144 +92,249 @@ export const SetupProfilePage: React.FC = () => {
     navigate('/consumer');
   };
 
+  const stepTitles: Record<Step, { title: string; subtitle: string; icon: React.ElementType }> = {
+    'name': { 
+      title: t('whats_your_name'), 
+      subtitle: t('so_we_know'),
+      icon: User
+    },
+    'address-basic': { 
+      title: t('flat_house') + ' & ' + t('building'), 
+      subtitle: t('where_deliver'),
+      icon: Home
+    },
+    'address-detail': { 
+      title: t('area_street') + ' & ' + t('city'), 
+      subtitle: 'Complete your address',
+      icon: Building
+    },
+    'delivery-time': { 
+      title: t('preferred_delivery_time'), 
+      subtitle: 'When should we deliver?',
+      icon: Clock
+    },
+  };
+
+  const currentStepInfo = stepTitles[step];
+  const StepIcon = currentStepInfo.icon;
+
   return (
     <div className="min-h-screen flex flex-col bg-background max-w-md mx-auto">
-      {/* Progress */}
-      <div className="p-6 pt-8">
-        <div className="flex items-center gap-2 mb-6">
-          <div className={`h-1.5 rounded-full flex-1 transition-colors ${step === 'name' || step === 'address' ? 'bg-primary' : 'bg-border'}`} />
-          <div className={`h-1.5 rounded-full flex-1 transition-colors ${step === 'address' ? 'bg-primary' : 'bg-border'}`} />
+      {/* Header with Progress */}
+      <div className="p-5 pt-8 space-y-4">
+        <div className="flex items-center gap-3">
+          {currentStepIndex > 0 && (
+            <button 
+              onClick={handleBack} 
+              className="p-2 -ml-2 hover:bg-accent rounded-xl transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          )}
+          <div className="flex-1">
+            <Progress value={progress} className="h-1.5" />
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {currentStepIndex + 1}/{steps.length}
+          </span>
         </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 px-6">
-        {step === 'name' && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-6"
-          >
-            <div>
-              <h1 className="text-2xl font-bold text-foreground mb-2">What's your name?</h1>
-              <p className="text-muted-foreground">So we know what to call you</p>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="e.g. Riya Sharma"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="h-12 mt-2"
-                />
-              </div>
-            </div>
-
-            <Button 
-              variant="fresh" 
-              size="lg" 
-              className="w-full mt-8" 
-              onClick={handleNameSubmit}
-              disabled={!name.trim()}
+        <AnimatePresence mode="wait">
+          {/* Step: Name */}
+          {step === 'name' && (
+            <motion.div
+              key="name"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-6"
             >
-              Next: Add Address
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-          </motion.div>
-        )}
+              <div className="text-center mb-8">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <StepIcon className="w-8 h-8 text-primary" />
+                </div>
+                <h1 className="text-2xl font-bold text-foreground mb-2">{currentStepInfo.title}</h1>
+                <p className="text-muted-foreground">{currentStepInfo.subtitle}</p>
+              </div>
 
-        {step === 'address' && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-6 pb-8"
-          >
-            <div>
-              <h1 className="text-2xl font-bold text-foreground mb-2">Delivery Address</h1>
-              <p className="text-muted-foreground">Where should we deliver your milk?</p>
-            </div>
-
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div>
-                  <Label htmlFor="flat">Flat/House No. *</Label>
+                  <Label htmlFor="name">{t('full_name')}</Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="e.g. Riya Sharma"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="h-14 mt-2 text-lg"
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              <Button 
+                variant="hero" 
+                size="lg" 
+                className="w-full mt-8" 
+                onClick={handleNameSubmit}
+                disabled={!name.trim()}
+              >
+                {t('next')}
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            </motion.div>
+          )}
+
+          {/* Step: Address Basic (Flat & Building) */}
+          {step === 'address-basic' && (
+            <motion.div
+              key="address-basic"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-6"
+            >
+              <div className="text-center mb-8">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <StepIcon className="w-8 h-8 text-primary" />
+                </div>
+                <h1 className="text-2xl font-bold text-foreground mb-2">{currentStepInfo.title}</h1>
+                <p className="text-muted-foreground">{currentStepInfo.subtitle}</p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="flat">{t('flat_house')} *</Label>
                   <Input
                     id="flat"
                     placeholder="e.g. A-101"
                     value={flat}
                     onChange={(e) => setFlat(e.target.value)}
-                    className="h-11 mt-1"
+                    className="h-12 mt-1"
+                    autoFocus
                   />
                 </div>
                 <div>
-                  <Label htmlFor="building">Building *</Label>
+                  <Label htmlFor="building">{t('building')} *</Label>
                   <Input
                     id="building"
                     placeholder="e.g. Sunrise Towers"
                     value={building}
                     onChange={(e) => setBuilding(e.target.value)}
-                    className="h-11 mt-1"
+                    className="h-12 mt-1"
                   />
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="area">Area/Street *</Label>
-                <Input
-                  id="area"
-                  placeholder="e.g. MG Road"
-                  value={area}
-                  onChange={(e) => setArea(e.target.value)}
-                  className="h-11 mt-1"
-                />
+              <Button 
+                variant="hero" 
+                size="lg" 
+                className="w-full mt-8" 
+                onClick={handleAddressBasicSubmit}
+                disabled={!flat.trim() || !building.trim()}
+              >
+                {t('next')}
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            </motion.div>
+          )}
+
+          {/* Step: Address Detail (Area, Landmark, Pincode, City) */}
+          {step === 'address-detail' && (
+            <motion.div
+              key="address-detail"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-6"
+            >
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <StepIcon className="w-8 h-8 text-primary" />
+                </div>
+                <h1 className="text-2xl font-bold text-foreground mb-2">{currentStepInfo.title}</h1>
+                <p className="text-muted-foreground">{currentStepInfo.subtitle}</p>
               </div>
 
-              <div>
-                <Label htmlFor="landmark">Landmark</Label>
-                <Input
-                  id="landmark"
-                  placeholder="e.g. Near City Mall"
-                  value={landmark}
-                  onChange={(e) => setLandmark(e.target.value)}
-                  className="h-11 mt-1"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div>
-                  <Label htmlFor="pincode">Pincode</Label>
+                  <Label htmlFor="area">{t('area_street')} *</Label>
                   <Input
-                    id="pincode"
-                    placeholder="e.g. 400001"
-                    value={pincode}
-                    onChange={(e) => setPincode(e.target.value)}
-                    className="h-11 mt-1"
+                    id="area"
+                    placeholder="e.g. MG Road"
+                    value={area}
+                    onChange={(e) => setArea(e.target.value)}
+                    className="h-12 mt-1"
+                    autoFocus
                   />
                 </div>
                 <div>
-                  <Label htmlFor="city">City</Label>
+                  <Label htmlFor="landmark">{t('landmark')}</Label>
                   <Input
-                    id="city"
-                    placeholder="e.g. Mumbai"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className="h-11 mt-1"
+                    id="landmark"
+                    placeholder="e.g. Near City Mall"
+                    value={landmark}
+                    onChange={(e) => setLandmark(e.target.value)}
+                    className="h-12 mt-1"
                   />
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="pincode">{t('pincode')}</Label>
+                    <Input
+                      id="pincode"
+                      placeholder="e.g. 411001"
+                      value={pincode}
+                      onChange={(e) => setPincode(e.target.value)}
+                      className="h-12 mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="city">{t('city')}</Label>
+                    <Input
+                      id="city"
+                      placeholder="e.g. Pune"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      className="h-12 mt-1"
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
 
-            {/* Delivery Slot - Enhanced */}
-            <div className="pt-4">
-              <div className="flex items-center gap-2 mb-4">
-                <Clock className="w-5 h-5 text-primary" />
-                <Label className="text-base font-semibold">Preferred Delivery Time</Label>
+              <Button 
+                variant="hero" 
+                size="lg" 
+                className="w-full mt-6" 
+                onClick={handleAddressDetailSubmit}
+                disabled={!area.trim()}
+              >
+                {t('next')}
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            </motion.div>
+          )}
+
+          {/* Step: Delivery Time */}
+          {step === 'delivery-time' && (
+            <motion.div
+              key="delivery-time"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-6"
+            >
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <StepIcon className="w-8 h-8 text-primary" />
+                </div>
+                <h1 className="text-2xl font-bold text-foreground mb-2">{currentStepInfo.title}</h1>
+                <p className="text-muted-foreground">{currentStepInfo.subtitle}</p>
               </div>
-              
+
               <div className="space-y-2">
                 {deliverySlots.map((slot) => (
                   <Card
@@ -256,27 +387,19 @@ export const SetupProfilePage: React.FC = () => {
                   />
                 </motion.div>
               )}
-            </div>
 
-            <Button 
-              variant="fresh" 
-              size="lg" 
-              className="w-full mt-4" 
-              onClick={handleAddressSubmit}
-              disabled={!flat.trim() || !building.trim() || !area.trim()}
-            >
-              <MapPin className="w-5 h-5 mr-2" />
-              Save & Continue
-            </Button>
-
-            <button 
-              onClick={() => setStep('name')}
-              className="w-full text-center text-muted-foreground text-sm hover:text-foreground transition-colors"
-            >
-              ← Back to name
-            </button>
-          </motion.div>
-        )}
+              <Button 
+                variant="hero" 
+                size="lg" 
+                className="w-full mt-4" 
+                onClick={handleComplete}
+              >
+                <MapPin className="w-5 h-5 mr-2" />
+                {t('save_continue')}
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
