@@ -7,6 +7,7 @@ import { MobileLayout } from '@/components/MobileLayout';
 import { BottomNav } from '@/components/BottomNav';
 import { Logo } from '@/components/Logo';
 import { useApp } from '@/contexts/AppContext';
+import { useTranslation } from '@/hooks/useTranslation';
 import { 
   Users, Droplets, IndianRupee, Check, MapPin, 
   ArrowRight, Clock, Truck, AlertCircle, Navigation,
@@ -17,11 +18,12 @@ import { toast } from 'sonner';
 export const OwnerDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { customers, milkProducts, user } = useApp();
+  const { t } = useTranslation();
   const [deliveredIds, setDeliveredIds] = useState<string[]>([]);
 
   const today = new Date();
   const currentHour = today.getHours();
-  const greeting = currentHour < 12 ? 'Good Morning' : currentHour < 17 ? 'Good Afternoon' : 'Good Evening';
+  const greeting = currentHour < 12 ? t('good_morning') : currentHour < 17 ? t('good_afternoon') : t('good_evening');
   
   const totalCustomers = customers.length;
   const isNewOwner = user?.isNewUser && totalCustomers === 0;
@@ -61,7 +63,7 @@ export const OwnerDashboard: React.FC = () => {
               </div>
             </div>
             <p className="text-sm text-muted-foreground">{greeting}</p>
-            <h1 className="text-2xl font-bold text-foreground">Sharma Dairy 🏪</h1>
+            <h1 className="text-2xl font-bold text-foreground">{user?.name || 'Dairy'} 🏪</h1>
           </motion.div>
         </div>
       </div>
@@ -70,9 +72,9 @@ export const OwnerDashboard: React.FC = () => {
         {/* Stats Cards */}
         <div className="grid grid-cols-3 gap-3">
           {[
-            { icon: Users, value: totalCustomers, label: 'Customers', path: '/owner/customers', color: 'bg-blue-500' },
-            { icon: Droplets, value: `${totalLiters}L`, label: 'Today', path: '/owner/deliveries', color: 'bg-emerald-500' },
-            { icon: IndianRupee, value: `₹${expectedCollection}`, label: 'Expected', path: '/owner/bills', color: 'bg-amber-500' },
+            { icon: Users, value: totalCustomers, label: t('customers'), path: '/owner/customers', color: 'bg-blue-500' },
+            { icon: Droplets, value: `${totalLiters}L`, label: t('today'), path: '/owner/deliveries', color: 'bg-emerald-500' },
+            { icon: IndianRupee, value: `₹${expectedCollection}`, label: t('expected'), path: '/owner/bills', color: 'bg-amber-500' },
           ].map((stat, index) => (
             <motion.div
               key={stat.label}
@@ -109,8 +111,8 @@ export const OwnerDashboard: React.FC = () => {
                     <Truck className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <span className="font-semibold text-foreground">Today's Progress</span>
-                    <p className="text-xs text-muted-foreground">{completedDeliveries} of {totalCustomers} deliveries</p>
+                    <span className="font-semibold text-foreground">{t('todays_progress')}</span>
+                    <p className="text-xs text-muted-foreground">{completedDeliveries} of {totalCustomers} {t('deliveries')}</p>
                   </div>
                 </div>
                 <span className="text-2xl font-bold text-primary">{progressPercent}%</span>
@@ -127,11 +129,11 @@ export const OwnerDashboard: React.FC = () => {
               <div className="flex justify-between mt-3 text-sm">
                 <span className="flex items-center gap-1.5 text-emerald-600">
                   <Check className="w-4 h-4" />
-                  {completedDeliveries} completed
+                  {completedDeliveries} {t('completed')}
                 </span>
                 <span className="flex items-center gap-1.5 text-amber-600">
                   <Clock className="w-4 h-4" />
-                  {pendingDeliveries} pending
+                  {pendingDeliveries} {t('pending')}
                 </span>
               </div>
             </CardContent>
@@ -148,7 +150,7 @@ export const OwnerDashboard: React.FC = () => {
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
               <UserPlus className="w-6 h-6 text-primary" />
             </div>
-            <span className="font-semibold">Add Customers</span>
+            <span className="font-semibold">{t('add_customers')}</span>
           </Button>
           <Button 
             variant="outline" 
@@ -158,7 +160,7 @@ export const OwnerDashboard: React.FC = () => {
             <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center">
               <Navigation className="w-6 h-6 text-emerald-600" />
             </div>
-            <span className="font-semibold">Start Route</span>
+            <span className="font-semibold">{t('start_route')}</span>
           </Button>
         </div>
 
@@ -174,7 +176,7 @@ export const OwnerDashboard: React.FC = () => {
                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                   <Sparkles className="w-5 h-5 text-primary" />
                 </div>
-                <h3 className="font-semibold text-foreground">Getting Started</h3>
+                <h3 className="font-semibold text-foreground">{t('getting_started')}</h3>
               </div>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
@@ -196,7 +198,7 @@ export const OwnerDashboard: React.FC = () => {
                 onClick={() => navigate('/owner/customers')}
               >
                 <UserPlus className="w-4 h-4 mr-2" />
-                Add First Customer
+                {t('add_first_customer')}
               </Button>
             </Card>
           </motion.div>
@@ -208,7 +210,7 @@ export const OwnerDashboard: React.FC = () => {
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-foreground flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-primary" />
-                Next Deliveries
+                {t('next_deliveries')}
               </h2>
               <Button 
                 variant="ghost" 
@@ -216,7 +218,7 @@ export const OwnerDashboard: React.FC = () => {
                 className="text-primary"
                 onClick={() => navigate('/owner/deliveries')}
               >
-                View All <ArrowRight className="w-4 h-4 ml-1" />
+                {t('view_all')} <ArrowRight className="w-4 h-4 ml-1" />
               </Button>
             </div>
             
@@ -276,7 +278,7 @@ export const OwnerDashboard: React.FC = () => {
                   <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
                     <Check className="w-10 h-10 text-emerald-600" />
                   </div>
-                  <p className="font-semibold text-foreground text-lg">All Done! 🎉</p>
+                  <p className="font-semibold text-foreground text-lg">{t('all_done')} 🎉</p>
                   <p className="text-sm text-muted-foreground mt-1">All deliveries completed for today</p>
                 </motion.div>
               )}
@@ -297,9 +299,9 @@ export const OwnerDashboard: React.FC = () => {
                   <AlertCircle className="w-5 h-5 text-amber-600" />
                 </div>
                 <div>
-                  <p className="font-semibold text-amber-800">Pending Deliveries</p>
+                  <p className="font-semibold text-amber-800">{t('pending_deliveries')}</p>
                   <p className="text-sm text-amber-600">
-                    {pendingDeliveries} customers waiting for delivery
+                    {pendingDeliveries} {t('customers_waiting')}
                   </p>
                 </div>
               </CardContent>

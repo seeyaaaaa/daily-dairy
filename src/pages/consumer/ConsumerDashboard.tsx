@@ -7,6 +7,7 @@ import { MobileLayout } from '@/components/MobileLayout';
 import { BottomNav } from '@/components/BottomNav';
 import { Logo } from '@/components/Logo';
 import { useApp } from '@/contexts/AppContext';
+import { useTranslation } from '@/hooks/useTranslation';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { Calendar, Edit3, TrendingUp, ChevronRight, Plus, Pause, Truck, ClipboardList, Bell, Sparkles, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -14,6 +15,7 @@ import { toast } from 'sonner';
 export const ConsumerDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, subscriptions, milkProducts, dailyOverrides } = useApp();
+  const { t } = useTranslation();
   const { supported, permission, requestPermission } = usePushNotifications();
   const [notificationLoading, setNotificationLoading] = useState(false);
 
@@ -42,9 +44,9 @@ export const ConsumerDashboard: React.FC = () => {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
+    if (hour < 12) return t('good_morning');
+    if (hour < 17) return t('good_afternoon');
+    return t('good_evening');
   };
 
   const handleNotificationClick = async () => {
@@ -85,7 +87,7 @@ export const ConsumerDashboard: React.FC = () => {
             <div>
               <p className="text-sm text-muted-foreground font-medium">{getGreeting()}</p>
               <h1 className="text-2xl font-bold text-foreground mt-0.5">
-                {user?.name || 'Welcome'} 👋
+                {user?.name || t('welcome')} 👋
               </h1>
             </div>
             <div className="flex items-center gap-3">
@@ -124,7 +126,7 @@ export const ConsumerDashboard: React.FC = () => {
                   <Calendar className="w-5 h-5 text-primary-foreground" />
                 </div>
                 <div>
-                  <span className="font-semibold text-primary-foreground">Today's Delivery</span>
+                  <span className="font-semibold text-primary-foreground">{t('todays_delivery')}</span>
                   <p className="text-xs text-primary-foreground/70">
                     {today.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}
                   </p>
@@ -165,14 +167,14 @@ export const ConsumerDashboard: React.FC = () => {
                       onClick={() => navigate('/consumer/today-override')}
                     >
                       <Edit3 className="w-4 h-4 mr-2" />
-                      Change Today
+                      {t('change_today')}
                     </Button>
                     <Button 
                       variant="outline" 
                       className="flex-1 h-12"
                       onClick={() => navigate('/consumer/subscription')}
                     >
-                      Manage Plan
+                      {t('manage_plan')}
                     </Button>
                   </div>
                 </div>
@@ -181,14 +183,14 @@ export const ConsumerDashboard: React.FC = () => {
                   <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-accent flex items-center justify-center">
                     <Sparkles className="w-8 h-8 text-primary" />
                   </div>
-                  <h3 className="font-semibold text-foreground mb-2">Start Your Milk Plan</h3>
+                  <h3 className="font-semibold text-foreground mb-2">{t('start_plan')}</h3>
                   <p className="text-muted-foreground text-sm mb-4">Get fresh milk delivered to your doorstep daily</p>
                   <Button 
                     variant="hero" 
                     onClick={() => navigate('/consumer/subscription')}
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    Create Subscription
+                    {t('create_subscription')}
                   </Button>
                 </div>
               )}
@@ -210,7 +212,7 @@ export const ConsumerDashboard: React.FC = () => {
                     <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                       <TrendingUp className="w-4 h-4 text-primary" />
                     </div>
-                    This Month
+                    {t('this_month')}
                   </CardTitle>
                   <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
                 </div>
@@ -219,11 +221,11 @@ export const ConsumerDashboard: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-3xl font-bold text-foreground">{monthlyLiters}L</p>
-                    <p className="text-sm text-muted-foreground">Total delivered</p>
+                    <p className="text-sm text-muted-foreground">{t('total_delivered')}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-3xl font-bold text-gradient">₹{monthlyBill}</p>
-                    <p className="text-sm text-muted-foreground">Approx. bill</p>
+                    <p className="text-sm text-muted-foreground">{t('approx_bill')}</p>
                   </div>
                 </div>
               </CardContent>
@@ -248,8 +250,8 @@ export const ConsumerDashboard: React.FC = () => {
                 <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-emerald-500/10 flex items-center justify-center group-hover:scale-105 transition-transform">
                   <Truck className="w-7 h-7 text-emerald-600" />
                 </div>
-                <p className="font-semibold text-foreground">Track Delivery</p>
-                <p className="text-xs text-muted-foreground mt-1">See live status</p>
+                <p className="font-semibold text-foreground">{t('track_delivery')}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t('see_live_status')}</p>
               </div>
             </Card>
           )}
@@ -263,8 +265,8 @@ export const ConsumerDashboard: React.FC = () => {
                 <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-blue-500/10 flex items-center justify-center group-hover:scale-105 transition-transform">
                   <ClipboardList className="w-7 h-7 text-blue-600" />
                 </div>
-                <p className="font-semibold text-foreground">Order History</p>
-                <p className="text-xs text-muted-foreground mt-1">Past deliveries</p>
+                <p className="font-semibold text-foreground">{t('order_history')}</p>
+                <p className="text-xs text-muted-foreground mt-1">{t('past_deliveries')}</p>
               </div>
             </Card>
           )}
@@ -278,19 +280,19 @@ export const ConsumerDashboard: React.FC = () => {
             transition={{ delay: 0.3 }}
           >
             <Card variant="fresh" className="p-5">
-              <h3 className="font-semibold text-foreground mb-3">Getting Started</h3>
+              <h3 className="font-semibold text-foreground mb-3">{t('getting_started')}</h3>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">1</div>
-                  <p className="text-sm text-muted-foreground">Create your first subscription</p>
+                  <p className="text-sm text-muted-foreground">{t('create_first_subscription')}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">2</div>
-                  <p className="text-sm text-muted-foreground">Choose milk type & quantity</p>
+                  <p className="text-sm text-muted-foreground">{t('choose_milk_quantity')}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">3</div>
-                  <p className="text-sm text-muted-foreground">Start receiving fresh milk daily!</p>
+                  <p className="text-sm text-muted-foreground">{t('start_receiving')}</p>
                 </div>
               </div>
             </Card>
